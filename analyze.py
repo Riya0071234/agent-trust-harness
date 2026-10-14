@@ -18,8 +18,8 @@ import yaml
 
 
 # --------------------------------------------------------------------------- loading
-def load_games(run_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
-    recs = [json.loads(l) for l in (run_dir / "games.jsonl").read_text().splitlines() if l.strip()]
+def load_games(run_dirs: list[Path]) -> tuple[pd.DataFrame, pd.DataFrame]:
+    recs = [json.loads(l) for d in run_dirs for l in (d / "games.jsonl").read_text().splitlines() if l.strip()]
     rows, all_rows = [], []
     for r in recs:
         g = r["game"]
@@ -29,7 +29,7 @@ def load_games(run_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
         o = r["outcome"]
         if o is None:
             continue
-        rows.append({**base, "eff": o["efficiency"] * 100, "sent": o["sent"], "returned": o["returned"],
+        rows.append({**base, "eff": o["efficiency"] * 100, "sent": o["sent"], "returned": o["returned"], "sender_pay": o["sender_pay"],
                      "mba": o["mutually_beneficial"], "exploit": o["exploitation"],
                      "return_share": o["return_share"], "verify_called": o["verify_called"],
                      "verify_result": o["verify_result"], "comp_ok": o["comprehension_ok"],
@@ -66,6 +66,21 @@ def _pooled_boot(ga: dict, gb: dict, rng, B: int):
         a, b = ga[m], gb[m]
         boots += a[rng.integers(0, len(a), (B, len(a)))].mean(1) - b[rng.integers(0, len(b), (B, len(b)))].mean(1)
     return est, boots / len(models)
+
+
+def _pooled_boot_gap(fa: dict, sa: dict, fb: dict, sb: dict, rng, B: int):
+    """Difference in discrimination: (mean eff | fair - mean eff | self_interested) in arm A minus the same in arm B,
+    averaged over models. Each of the four model-cells is resampled separately."""
+    models = [m for m in fa if m in sa and m in fb and m in sb]
+    if not models:
+        return None, None
+
+    def rs(x):
+        return x[rng.integers(0, len(x), (B, len(x)))].mean(1)
+
+    est = np.mean([(fa[m].mean() - sa[m].mean()) - (fb[m].mean() - sb[m].mean()) for m in models])
+    boots = sum((rs(fa[m]) - rs(sa[m])) - (rs(fb[m]) - rs(sb[m])) for m in models) / len(models)
+    return est, boots
 
 
 def _vs_humans_boot(ga: dict, hum: np.ndarray, rng, B: int):
@@ -114,6 +129,7 @@ HYPOTHESES = [
     ("G2", "Unsigned credential: D2 - D1", "either direction", "pair", ("D2", "D1"), 0, "none"),
     ("G3a", "Verification matters: D3 - D4", "D3 > D4", "pair", ("D3", "D4"), +1, "dir"),
     ("G3b", "Failed verification is discounted: D4 - D1", "D4 ~ D1 (null predicted)", "pair", ("D4", "D1"), 0, "null"),
+    ("G4", "Credentials improve discrimination: (fair - self-interested) gap in D3 minus D1", "gap larger in D3", "gap", ("D3", "D1"), +1, "dir"),
 ]
 
 
@@ -142,6 +158,11 @@ def run_hypotheses(df, hum, cfg, query=None):
     for hid, desc, pred, kind, args, direction, ptype in HYPOTHESES:
         if kind == "pair":
             est, boots = _pooled_boot(groups(df, args[0], query), groups(df, args[1], query), rng, B)
+        elif kind == "gap":
+            f, sf = "ptype == 'fair'", "ptype == 'self_interested'"
+            q = lambda extra: f"({query}) and ({extra})" if query else extra
+            est, boots = _pooled_boot_gap(groups(df, args[0], q(f)), groups(df, args[0], q(sf)),
+                                          groups(df, args[1], q(f)), groups(df, args[1], q(sf)), rng, B)
         else:
             est, boots = _vs_humans_boot(groups(df, args[0], query), hum, rng, B)
         r = label(est, boots, direction, delta, ci)
@@ -181,7 +202,7 @@ def cell_table(df, all_df):
         tot = all_df[(all_df["arm"] == arm) & (all_df["model"] == model)]
         rows.append({"arm": arm, "model": model, "games": len(tot), "aborted": int(tot["aborted"].sum()),
                      "malformed_outputs": int(tot["malformed"].sum()),
-                     "mean_eff_pts": d["eff"].mean(), "mean_sent": d["sent"].mean(),
+                     "mean_eff_pts": d["eff"].mean(), "mean_sent": d["sent"].mean(), "mean_sender_pay": d["sender_pay"].mean(),
                      "mba_rate": d["mba"].mean(), "exploit_rate": d["exploit"].mean(),
                      "mean_return_share": d["return_share"].mean(),
                      "verify_rate": d["verify_called"].mean(), "comprehension_ok": d["comp_ok"].mean()})
@@ -209,12 +230,28 @@ def md_table(df: pd.DataFrame, floats: dict | None = None) -> str:
     return "\n".join(lines)
 
 
-def main(run_dir: str):
-    run = Path(run_dir)
-    manifest = json.loads((run / "manifest.json").read_text())
+def merge_manifests(run_dirs: list[Path]) -> dict:
+    ms = [json.loads((d / "manifest.json").read_text()) for d in run_dirs]
+    m = dict(ms[0])
+    m["model_ids"] = {k: v for x in ms for k, v in x["model_ids"].items()}
+    m["mock"] = any(x["mock"] for x in ms)
+    m["run_started_utc"] = min(x["run_started_utc"] for x in ms)
+    spend = {}
+    for x in ms:
+        spend.update(x.get("spend_usd", {}) if isinstance(x.get("spend_usd"), dict) else {})
+    m["spend_usd"] = spend or "n/a"
+    m["games_per_cell"] = ", ".join(sorted({str(x["games_per_cell"]) for x in ms}))
+    return m
+
+
+def main(run_dirs: list[str], out_dir: str | None = None):
+    dirs = [Path(d) for d in run_dirs]
+    run = Path(out_dir) if out_dir else (dirs[0] if len(dirs) == 1 else Path("results/combined"))
+    run.mkdir(parents=True, exist_ok=True)
+    manifest = merge_manifests(dirs)
     cfg = manifest["config"]
     root = Path(__file__).parent
-    df, all_df = load_games(run)
+    df, all_df = load_games(dirs)
     hum = human_efficiency(root / cfg["analysis"]["human_baseline_csv"])
 
     primary = pd.DataFrame(run_hypotheses(df, hum, cfg))
@@ -229,6 +266,7 @@ def main(run_dir: str):
 
     delta = cfg["analysis"]["smallest_effect_points"]
     lines = [f"# Results: {run.name}", "",
+             f"Sources: {', '.join(str(d) for d in dirs)}.",
              f"Run started {manifest['run_started_utc']}. Models: {json.dumps(manifest['model_ids'])}. "
              f"Games per cell: {manifest['games_per_cell']}. Mock run: {manifest['mock']}. "
              f"Spend: ${manifest.get('spend_usd', 'n/a')}.", ""]
@@ -246,7 +284,7 @@ def main(run_dir: str):
               "it is a benchmark, not a randomised arm.",
               "- Decomposition: H4 (A0 - humans) is what agents do differently from humans with no infrastructure; H1 is what the "
               "infrastructure adds. Both are reported so an agent effect is not credited to the infrastructure.", ""]
-    lines += ["## Cells", "", md_table(cells, {"mean_eff_pts": 1, "mean_sent": 2, "mba_rate": 2, "exploit_rate": 2,
+    lines += ["## Cells", "", md_table(cells, {"mean_eff_pts": 1, "mean_sent": 2, "mean_sender_pay": 2, "mba_rate": 2, "exploit_rate": 2,
                                                   "mean_return_share": 2, "verify_rate": 2, "comprehension_ok": 2}), ""]
     v = verification_analysis(df, cfg)
     if len(v):
@@ -262,4 +300,9 @@ def main(run_dir: str):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("run_dirs", nargs="+", help="one or more run directories containing games.jsonl and manifest.json")
+    ap.add_argument("--out", default=None, help="where to write results (default: the run dir, or results/combined)")
+    a = ap.parse_args()
+    main(a.run_dirs, a.out)

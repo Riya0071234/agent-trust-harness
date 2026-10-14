@@ -5,7 +5,8 @@ signatures, what was sent, what was returned, whether the commitment or credenti
 the payoffs, efficiency and the comprehension answers, and compares them with what run.py
 stored. It then recomputes the per-cell mean efficiency and compares it with cells.csv.
 
-Usage: python audit.py results/pilot       (exit code 1 if anything differs)
+Usage: python audit.py results/claude results/openai [--cells results/combined]
+       (exit code 1 if anything differs; cells.csv is read from --cells, default: the run dir or results/combined)
 """
 from __future__ import annotations
 
@@ -114,9 +115,10 @@ def audit_game(r):
     return {"eff": eff * 100}, errs
 
 
-def main(run_dir: str) -> int:
-    run = Path(run_dir)
-    recs = [json.loads(l) for l in (run / "games.jsonl").read_text().splitlines() if l.strip()]
+def main(run_dirs: list[str], cells_dir: str | None = None) -> int:
+    runs = [Path(d) for d in run_dirs]
+    recs = [json.loads(l) for d in runs for l in (d / "games.jsonl").read_text().splitlines() if l.strip()]
+    run = Path(cells_dir) if cells_dir else (runs[0] if len(runs) == 1 else Path("results/combined"))
     bad, skipped, cell = 0, 0, defaultdict(list)
     for r in recs:
         res, errs = audit_game(r)
@@ -145,4 +147,9 @@ def main(run_dir: str) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1]))
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("run_dirs", nargs="+")
+    ap.add_argument("--cells", default=None)
+    a = ap.parse_args()
+    sys.exit(main(a.run_dirs, a.cells))

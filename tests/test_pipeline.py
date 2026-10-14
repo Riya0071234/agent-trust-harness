@@ -19,7 +19,7 @@ def test_mock_run_analyze_audit(tmp_path):
     assert len(games) == 6 * 2 * 9            # 9 arms, 2 models
     assert {g["game"]["arm"] for g in games} == {"A0", "C1", "C2", "C3", "C4", "D1", "D2", "D3", "D4"}
     # every typed cell is balanced 50/50 between principal types
-    c3 = [g for g in games if g["game"]["arm"] == "C3" and g["game"]["model_label"] == "small"]
+    c3 = [g for g in games if g["game"]["arm"] == "C3" and g["game"]["model_label"] == "claude"]
     assert sum(g["game"]["trustee_type"] == "fair" for g in c3) == 3
     if HAVE_BASELINE:
         r = sh("analyze.py", str(out))
