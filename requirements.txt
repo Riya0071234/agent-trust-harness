@@ -1,0 +1,7 @@
+anthropic>=1.0
+cryptography>=42
+numpy
+pandas
+pyyaml
+pytest
+matplotlib

@@ -1,0 +1,1 @@
+Before you decide, the supplier will state a return rule as a percentage of the tripled amount, and will label it 'committed'. The label and the percentage are typed by the supplier, and no signature or check is attached to them. After your prepayment the supplier chooses the return. The points have no value outside this exchange. Each step is final once it is submitted.

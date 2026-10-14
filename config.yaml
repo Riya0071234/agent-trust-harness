@@ -1,0 +1,31 @@
+# Run configuration. Everything that affects results lives here or in prompts/,
+# and both are hashed into results/<run>/manifest.json.
+seed: 20261014
+temperature: 1.0
+max_tokens: 700
+concurrency: 6
+max_spend_usd: 15.0        # hard stop; unfinished games are discarded and re-run on resume
+games_per_cell: 20         # pilot size per arm per model (full study: 160)
+
+# Pin dated model IDs and fill prices (USD per million tokens) before a real run.
+# run.py refuses to start a real run while any value is null.
+models:
+  - label: small
+    id: null
+    price_in: null
+    price_out: null
+  - label: large
+    id: null
+    price_in: null
+    price_out: null
+
+experiments:
+  1: [A0, C1, C2, C3, C4]
+  2: [D1, D2, D3, D4]
+
+analysis:
+  bootstrap_resamples: 5000
+  bootstrap_seed: 7
+  ci_level: 0.95
+  smallest_effect_points: 10   # percentage points of efficiency
+  human_baseline_csv: data/human_baseline_johnson_mislin_2011.csv

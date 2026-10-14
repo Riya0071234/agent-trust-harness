@@ -1,0 +1,1 @@
+Before the buyer decides, no message passes between you and the buyer. After the prepayment you choose the return yourself. The points have no value outside this exchange. Each step is final once it is submitted, and the totals are recorded once both steps are finished. There is nothing further to consider beyond what is described here.
