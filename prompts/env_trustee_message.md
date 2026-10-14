@@ -1,0 +1,1 @@
+Before the buyer decides, you may send the buyer one free-text message of up to 300 characters. The message is not signed, checked or enforced by anyone. After the prepayment you choose the return yourself. The points have no value outside this exchange. Each step is final once it is submitted, and the totals are recorded once both steps are finished.

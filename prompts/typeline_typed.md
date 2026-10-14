@@ -1,0 +1,1 @@
+The supplier acts for a principal. About half of all principals want a fair outcome that benefits both sides, and about half want to finish with as many points as possible. You cannot see which kind this supplier's principal is.

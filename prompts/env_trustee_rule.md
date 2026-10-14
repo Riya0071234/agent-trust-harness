@@ -1,0 +1,1 @@
+Before the buyer decides, you will state a return rule as a percentage of the tripled amount, and the buyer will see it labelled 'committed'. The label and the percentage are shown as typed, with no signature or check attached. After the prepayment you choose the return yourself. The points have no value outside this exchange. Each step is final once it is submitted.

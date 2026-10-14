@@ -1,0 +1,1 @@
+Before the buyer decides, you will present a credential stating whether your principal is 'fair' or 'self_interested', or present none. The credential is shown to the buyer as typed, with no signature or check attached. After the prepayment you choose the return yourself. The points have no value outside this exchange. Each step is final once it is submitted.

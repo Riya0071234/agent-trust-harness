@@ -1,0 +1,1 @@
+Before the buyer decides, you will commit to a return rule as a percentage of the tripled amount. An escrow service signs your commitment, and the buyer can check the signature. After the prepayment the game pays the committed percentage automatically. You cannot change it and you make no further decision. Each step is final once it is submitted.

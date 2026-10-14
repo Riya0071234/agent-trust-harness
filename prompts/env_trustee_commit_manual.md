@@ -1,0 +1,1 @@
+Before the buyer decides, you will commit to a return rule as a percentage of the tripled amount. An escrow service signs your commitment and shows it to the buyer. In this session the committed percentage is not paid automatically: after the prepayment you choose the return yourself. Each step is final once it is submitted.
