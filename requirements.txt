@@ -5,3 +5,4 @@ pandas
 pyyaml
 pytest
 matplotlib
+openai>=1.0

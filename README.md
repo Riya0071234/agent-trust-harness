@@ -4,38 +4,44 @@ A small, reproducible harness for measuring what trust infrastructure adds when 
 
 The infrastructure is simulated: an escrow holds an Ed25519 key that stands in for the key a TEE would hold, and the signatures and checks are real. The same interface could later point at a real TEE attestation or an MPC computation.
 
-**Status:** pilot. See `PREREG.md` for the hypotheses, sample sizes and analysis, fixed before any model was run, and `results/` for what came out.
+`PREREG.md` holds the hypotheses, sample-size rule and analysis, committed before any model was run. `results/` holds what came out.
 
 ## How it works
 
 | File | Job |
 |---|---|
-| `config.yaml` | Model IDs, prices, temperature, games per cell, analysis settings |
+| `config.yaml` | Models (one per vendor), prices, spend caps, temperature, analysis settings |
 | `prompts/` | One file per role and arm; hashed into the manifest |
 | `engine.py` | Game rules, payoffs, arms, tools, the turn sequence |
 | `escrow.py` | Signing and verifying commitments and credentials (Ed25519) |
-| `agents.py` | Anthropic adapter with tool calls, retries and a spend cap; a scripted mock for tests |
-| `run.py` | Runs the grid unattended, resumes after a crash, writes one JSONL line per game |
+| `agents.py` | Anthropic and OpenAI adapters sharing one tool loop, with retries and a per-model spend cap; a scripted mock for tests |
+| `run.py` | Runs the grid unattended, resumes after a crash, writes one JSONL line per game, has a smoke test |
 | `analyze.py` | The pre-registered analysis; labels every hypothesis positive, null or inconclusive |
 | `audit.py` | Recomputes every metric from the raw transcripts and signatures, without importing the engine |
-| `data/` | Human baseline from Johnson and Mislin (2011): 150 studies that tripled the amount sent |
-| `tests/` | Payoffs, signatures, prompt-length balance, an end-to-end mock run, and checks that the audit catches tampering |
+| `data/` | Where the human baseline goes; see `data/README.md` |
+| `tests/` | Payoffs, signatures, prompt-length balance, adapters against fake clients, an end-to-end mock run, and checks that the audit catches tampering |
 
 ## Run it
 
 ```bash
 pip install -r requirements.txt
-python -m pytest -q tests                                   # no API key needed
-python run.py --mock --out results/mock --games-per-cell 4  # free dry run; never report as results
+python -m pytest -q tests                      # no API key needed
 
-export ANTHROPIC_API_KEY=...                                # real run: pin model IDs and prices in config.yaml first
-python run.py --out results/pilot --games-per-cell 20
-python analyze.py results/pilot
-python audit.py results/pilot                               # must print AUDIT PASS before results are reported
+# 1. smoke test: 2 games per arm, prints cost per game and the size to run
+export ANTHROPIC_API_KEY=...                   # or OPENAI_API_KEY=... for the openai model
+python run.py --smoke --models claude --out results/smoke_claude
+
+# 2. the run, at the size the smoke test recommends (the smaller of the two models' sizes)
+python run.py --models claude --out results/claude --games-per-cell 160
+python run.py --models openai --out results/openai --games-per-cell 160
+
+# 3. analysis and audit over both runs
+python analyze.py results/claude results/openai --out results/combined
+python audit.py results/claude results/openai --cells results/combined     # must print AUDIT PASS
 ```
 
-If a run stops (crash or spend cap), run the same command again; finished games are skipped.
+If a run stops (crash or spend cap), run the same command again; finished games are skipped. `--mock` runs a scripted stand-in for free; never report its numbers.
 
 ## Limits
 
-Self-play with two models from one vendor; the principal type is assigned by prompt; the hardware is simulated; the human data are a published benchmark, not a randomised arm. `PREREG.md` lists these and what a pilot of this size can and cannot show.
+Self-play with two models; the principal type is assigned by prompt; the hardware is simulated; the human data are a published benchmark, not a randomised arm. `PREREG.md` lists these and what the study can and cannot show.
