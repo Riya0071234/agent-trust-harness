@@ -4,20 +4,21 @@ seed: 20261014
 temperature: 1.0
 max_tokens: 700
 concurrency: 6
-max_spend_usd: 15.0        # hard stop; unfinished games are discarded and re-run on resume
+max_spend_usd: 10.0        # hard stop; unfinished games are discarded and re-run on resume
 games_per_cell: 20         # pilot size per arm per model (full study: 160)
 
-# Pin dated model IDs and fill prices (USD per million tokens) before a real run.
-# run.py refuses to start a real run while any value is null.
+# Pinned before the first real run. run.py refuses to start a real run while any value is null.
 models:
+  # Prices from platform.claude.com/docs/en/about-claude/pricing, checked 2026-10-14.
+  # IDs are the API strings for these tiers; confirm against GET /v1/models before the first call.
   - label: small
-    id: null
-    price_in: null
-    price_out: null
+    id: claude-haiku-5-5
+    price_in: 0.10      # USD per million input tokens (prompts up to 100k tokens)
+    price_out: 0.50
   - label: large
-    id: null
-    price_in: null
-    price_out: null
+    id: claude-sonnet-5-5
+    price_in: 2.00
+    price_out: 10.00
 
 experiments:
   1: [A0, C1, C2, C3, C4]
