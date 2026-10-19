@@ -299,7 +299,7 @@ def main(run_dirs: list[str], out_dir: str | None = None):
               "## Hypotheses", "", md_table(h, {"est": 1, "lo": 1, "hi": 1, "p_tost": 3}), ""]
     lines += ["## AI advantage, in the role's two senses", "",
               "- Versus agents without infrastructure: H1 (C3 - C1) in Experiment 1, G1 (D3 - D1) in Experiment 2.",
-              "- Versus humans: H4b (C3 - humans). The human baseline is 150 published studies that tripled the amount sent; "
+              f"- Versus humans: H4b (C3 - humans). The human baseline is {len(hum)} published studies that tripled the amount sent (with a valid mean share); "
               "it is a benchmark, not a randomised arm.",
               "- Decomposition: H4 (A0 - humans) is what agents do differently from humans with no infrastructure; H1 is what the "
               "infrastructure adds. Both are reported so an agent effect is not credited to the infrastructure.", ""]
@@ -314,7 +314,7 @@ def main(run_dirs: list[str], out_dir: str | None = None):
         lines += ["## Did senders tell fair from self-interested trustees? (descriptive)", "",
                   md_table(dsc, {"sent_to_fair": 2, "sent_to_self_interested": 2, "gap": 2}), ""]
     human = pd.DataFrame([{"studies": len(hum), "mean_efficiency_pts": hum.mean(), "sd_across_studies": hum.std(ddof=1)}])
-    lines += ["## Human baseline", "", md_table(human, {"mean_efficiency_pts": 1, "sd_across_studies": 1}), ""]
+    lines += ["## Human baseline", "", md_table(human, {"studies": 0, "mean_efficiency_pts": 1, "sd_across_studies": 1}), ""]
     (run / "results.md").write_text("\n".join(lines))
     print("\n".join(lines))
 
