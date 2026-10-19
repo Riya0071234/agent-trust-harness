@@ -182,7 +182,7 @@ class OpenAIAgent(ToolLoopAgent):
                       tool_choice=({"type": "function", "function": {"name": force}} if force else "required"),
                       parallel_tool_calls=False, max_completion_tokens=self.max_tokens,
                       temperature=self.temperature)
-        if self.reasoning_effort:
+        if self.reasoning_effort and not tools:
             kwargs["reasoning_effort"] = self.reasoning_effort
         for p in self.drop:
             kwargs.pop(p, None)
