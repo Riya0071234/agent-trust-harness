@@ -182,8 +182,7 @@ class OpenAIAgent(ToolLoopAgent):
                       tool_choice=({"type": "function", "function": {"name": force}} if force else "required"),
                       parallel_tool_calls=False, max_completion_tokens=self.max_tokens,
                       temperature=self.temperature)
-        # gpt-6.1-sol doesn't support reasoning_effort with function tools
-        if self.reasoning_effort and "gpt-6.1" not in self.model_id:
+        if self.reasoning_effort:
             kwargs["reasoning_effort"] = self.reasoning_effort
         for p in self.drop:
             kwargs.pop(p, None)
