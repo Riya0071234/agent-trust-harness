@@ -123,3 +123,7 @@ Revision 2, before any model run (supersedes the first commit of this file):
 - Added G4 (discrimination), since average efficiency does not show whether credentials are used to select trustees.
 - Replaced the fixed pilot size and the earlier model pair by the two-vendor pair and the size rule above, after the author set a $5 budget per vendor.
 - Added the multiplicity statement, the note that the comprehension check is arm-independent, and the vendor caveat.
+
+Smoke-test findings, before any main run (no prompt changes):
+- Anthropic SDK: `temperature` is no longer a named argument in the current SDK, so it is passed through `extra_body`; same value (1.0), same behaviour.
+- `gpt-6-luna` rejects function tools on Chat Completions unless `reasoning_effort` is `none`. Config now sets `reasoning_effort: none` for the openai model, so it answers without extended reasoning. This is a setting difference between the two vendors' models (the Claude model runs with its default) and is stated in the write-up as a limitation.
