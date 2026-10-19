@@ -42,10 +42,12 @@ python audit.py results/claude results/openai --cells results/combined     # mus
 
 On Windows, double-click `setup_windows.bat` once (it needs Python 3.12), then `run_openai.bat`, which asks for the key and runs the OpenAI arm.
 
-Cross-vendor pairs (one model buys, the other supplies; needs both keys): `python run.py --pair "claude>openai" --out results/cross_claude_buys --games-per-cell 160 --max-spend 3`, then the same with `"openai>claude"` into `results/cross_openai_buys`. Quote the pair: in Windows `cmd` a bare `>` redirects output. On Windows, `run_cross.bat` does both. Analyse with `python analyze.py results/cross_claude_buys results/cross_openai_buys --out results/cross_combined`.
+Cross-vendor pairs (one model buys, the other supplies; needs both keys): `python run.py --pair "claude>openai" --out results/cross_claude_buys --games-per-cell 160 --max-spend 0.9`, then the same with `"openai>claude"` into `results/cross_openai_buys`. Quote the pair: in Windows `cmd` a bare `>` redirects output. On Windows, `run_cross.bat` does both. Analyse with `python analyze.py results/cross_claude_buys results/cross_openai_buys --out results/cross_combined`.
 
 If a run stops (crash or spend cap), run the same command again; finished games are skipped. `--mock` runs a scripted stand-in for free; never report its numbers.
 
 ## Limits
 
 Self-play with two models; the principal type is assigned by prompt; the hardware is simulated; the human data are a published benchmark, not a randomised arm. `PREREG.md` lists these and what the study can and cannot show.
+
+Stronger-model check (Experiment 4): `python run.py --models claude_sonnet --arms A0,C1,C3,D1,D3 --out results/stronger_claude_sonnet --games-per-cell 18` and `python run.py --models openai_sol --arms A0,C1,C3,D1,D3 --out results/stronger_openai_sol --games-per-cell 40` (on Windows, `run_stronger_openai.bat` runs the second). These models never run unless named. Theory benchmark next to the observed means: `python theory.py --cells results/combined/cells.csv`.

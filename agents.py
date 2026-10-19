@@ -102,10 +102,14 @@ class AnthropicAgent(ToolLoopAgent):
         self.client = anthropic.AsyncAnthropic(api_key=api_key or os.environ["ANTHROPIC_API_KEY"], max_retries=5)
         self.model_id, self.temperature, self.max_tokens, self.budget = model_id, temperature, max_tokens, budget
         self.send_temperature = True
+        self.auto_choice = False   # set if the model rejects forced tool use; then a missing tool call is retried by the loop
 
     async def _complete(self, system, messages, tools, force):
-        tool_choice = ({"type": "tool", "name": force} if force
-                       else {"type": "any", "disable_parallel_tool_use": True})
+        if self.auto_choice:
+            tool_choice = {"type": "auto", "disable_parallel_tool_use": True}
+        else:
+            tool_choice = ({"type": "tool", "name": force} if force
+                           else {"type": "any", "disable_parallel_tool_use": True})
         kwargs = dict(model=self.model_id, max_tokens=self.max_tokens, system=system,
                       messages=messages, tools=tools, tool_choice=tool_choice)
         if self.send_temperature:
@@ -117,6 +121,10 @@ class AnthropicAgent(ToolLoopAgent):
             if self.send_temperature and "temperature" in str(e).lower():
                 self.send_temperature = False   # this model rejects the parameter; recorded in the manifest
                 kwargs.pop("extra_body")
+                resp = await self.client.messages.create(**kwargs)
+            elif kwargs["tool_choice"]["type"] != "auto" and "tool_choice" in str(e).lower():   # concurrent calls may race here
+                self.auto_choice = True         # this model rejects forced tool use (claude-sonnet-5-5); use 'auto'
+                kwargs["tool_choice"] = {"type": "auto", "disable_parallel_tool_use": True}
                 resp = await self.client.messages.create(**kwargs)
             else:
                 raise

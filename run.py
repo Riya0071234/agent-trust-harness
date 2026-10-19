@@ -108,6 +108,9 @@ def resume_problems(old: dict, new: dict, cfg: dict, labels: list[str]) -> list[
     if old.get("prompt_hashes") != new["prompt_hashes"]:
         problems.append("the prompts differ from those used for the games already on disk")
     oc = old.get("config", {})
+    norm = lambda e: {str(k): list(v) for k, v in e.items()}      # JSON turns the experiment numbers into strings
+    if oc.get("experiments") is not None and norm(oc["experiments"]) != norm(cfg["experiments"]):
+        problems.append(f"the arms differ ({oc.get('experiments')!r} on disk, {cfg['experiments']!r} now)")
     for k in ("seed", "temperature", "max_tokens"):
         if oc.get(k) != cfg[k]:
             problems.append(f"config {k} differs ({oc.get(k)!r} on disk, {cfg[k]!r} now)")
@@ -137,6 +140,12 @@ async def main_async(args):
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     prompts = load_prompts("prompts")
+    if args.arms:      # a pre-registered subset of arms (Experiment 4); the config stored in the manifest shows it
+        keep = args.arms.split(",")
+        bad = [a for a in keep if a not in {x for v in cfg["experiments"].values() for x in v}]
+        if bad:
+            sys.exit(f"unknown arms: {bad}")
+        cfg["experiments"] = {e: [a for a in v if a in keep] for e, v in cfg["experiments"].items()}
     n = 2 if args.smoke else (args.games_per_cell or cfg["games_per_cell"])
     exps = [1, 2]
 
@@ -149,7 +158,8 @@ async def main_async(args):
             sys.exit("--pair must name two different model labels as buyer>supplier, e.g. claude>openai")
         wanted = set(pair)
     else:
-        wanted = set(args.models.split(",")) if args.models else {m["label"] for m in cfg["models"]}
+        # models marked sensitivity (stronger-model checks) are never run unless named
+        wanted = set(args.models.split(",")) if args.models else {m["label"] for m in cfg["models"] if not m.get("sensitivity")}
     models = [m for m in cfg["models"] if m["label"] in wanted]
     if not models or len(models) != len(wanted):
         sys.exit(f"no models match {args.pair or args.models}")
@@ -239,7 +249,8 @@ async def main_async(args):
     manifest["spend_usd"] = {k: round(b.spent, 4) for k, b in budgets.items()}
     manifest["stopped_by_cap"] = sorted(stopped)
     for label, a in agents.items():   # parameters a model rejected and the code dropped
-        dropped = sorted(getattr(a, "drop", set()) | ({"temperature"} if getattr(a, "send_temperature", True) is False else set()))
+        dropped = sorted(getattr(a, "drop", set()) | ({"temperature"} if getattr(a, "send_temperature", True) is False else set())
+                         | ({"forced tool_choice (auto used)"} if getattr(a, "auto_choice", False) else set()))
         if dropped:
             manifest.setdefault("dropped_parameters", {})[label] = dropped
     manifest_path.write_text(json.dumps(manifest, indent=2))
@@ -272,6 +283,7 @@ if __name__ == "__main__":
     ap.add_argument("--out", required=True)
     ap.add_argument("--models", default=None, help="comma-separated labels from config.yaml (default: all)")
     ap.add_argument("--pair", default=None, help="cross-vendor run, buyer>supplier model labels, e.g. claude>openai")
+    ap.add_argument("--arms", default=None, help="comma-separated subset of arms to play, e.g. A0,C1,C3,D1,D3")
     ap.add_argument("--games-per-cell", type=int, default=None)
     ap.add_argument("--max-spend", type=float, default=None, help="override each model's cap")
     ap.add_argument("--concurrency", type=int, default=None)
