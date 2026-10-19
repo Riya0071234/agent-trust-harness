@@ -226,7 +226,9 @@ def stated_share(art: dict) -> int | None:
 
 
 async def play_game(game: dict, agent, prompts: dict[str, str]) -> dict:
-    """Play one game with `agent` in both roles (self-play) and return the full record."""
+    """Play one game and return the full record. `agent` plays both roles (self-play), or is a dict
+    {"sender": agent_a, "trustee": agent_b} for a cross-vendor pair. Prompts, tools and rules are the same either way."""
+    agents = agent if isinstance(agent, dict) else {"sender": agent, "trustee": agent}
     arm_id = game["arm"]
     arm = ARMS[arm_id]
     rng = random.Random(game["seed"])
@@ -248,8 +250,8 @@ async def play_game(game: dict, agent, prompts: dict[str, str]) -> dict:
     }
 
     async def act(role, phase, system, user, tools, terminal, execute=None, validate=None, ctx=None):
-        res = await agent.act(system=system, user=user, tools=tools, terminal=terminal,
-                              execute=execute, validate=validate, ctx=ctx or {})
+        res = await agents[role].act(system=system, user=user, tools=tools, terminal=terminal,
+                                     execute=execute, validate=validate, ctx=ctx or {})
         for c in res["calls"]:
             c["role"], c["phase"] = role, phase
             rec["calls"].append(c)
