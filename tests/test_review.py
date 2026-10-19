@@ -367,3 +367,81 @@ def test_anthropic_adapter_falls_back_to_auto_tool_choice_even_under_concurrency
         return await asyncio.gather(*[a._complete("s", [], [], None) for _ in range(3)])      # three calls in flight at once
     asyncio.run(go())
     assert a.auto_choice and seen.count("auto") == 3
+
+
+# ---- Responses API adapter (gpt-6.1-sol) ----
+class _RespClient:
+    class BadRequestError(Exception):
+        pass
+
+    def __init__(self, script):
+        from types import SimpleNamespace as NS
+        self.script, self.seen = list(script), []
+        self.responses = NS(create=self._create)
+
+    async def _create(self, **kw):
+        self.seen.append(kw)
+        r = self.script.pop(0)
+        if isinstance(r, Exception):
+            raise r
+        return r
+
+
+def _r(calls=(), text=None, pin=100, pout=50):
+    from types import SimpleNamespace as NS
+    import json as _j
+    out = []
+    if text:
+        out.append(NS(type="message", content=[NS(type="output_text", text=text)]))
+    out.append(NS(type="reasoning", summary=[]))
+    for i, (n, a) in enumerate(calls):
+        out.append(NS(type="function_call", call_id=f"c{i}", name=n, arguments=_j.dumps(a)))
+    return NS(output=out, status="completed", usage=NS(input_tokens=pin, output_tokens=pout))
+
+
+def _resp_agent(client):
+    from agents import OpenAIResponsesAgent, Budget
+    return OpenAIResponsesAgent("gpt-6.1-sol", 1.0, 4000, Budget(5.0, 2.0, 10.0), "low", client=client)
+
+
+def test_responses_adapter_translates_and_returns_the_terminal_input():
+    import asyncio, json as _j
+    from engine import TOOLS, validate_input
+    c = _RespClient([_r([("verify_commitment", {})]), _r([("submit_transfer", {"amount": 6, "rationale": "x"})])])
+    tools = [TOOLS["verify_commitment"], TOOLS["submit_transfer"]]
+    ex = lambda n, i: _j.dumps({"signature_valid": True})
+    r = asyncio.run(_resp_agent(c).act("SYS", "USER", tools, "submit_transfer", ex, lambda n, i: validate_input(n, i), {}))
+    assert r["input"]["amount"] == 6 and not r["aborted"]
+    first, second = c.seen
+    assert first["instructions"] == "SYS" and first["input"] == [{"role": "user", "content": "USER"}]
+    assert first["tool_choice"] == "required" and first["reasoning"] == {"effort": "low"}
+    assert "temperature" not in first and first["max_output_tokens"] == 4000
+    assert first["tools"][0]["type"] == "function" and first["tools"][0]["name"] == "verify_commitment"
+    assert second["input"][1] == {"type": "function_call", "call_id": "c0", "name": "verify_commitment", "arguments": "{}"}
+    assert second["input"][2]["type"] == "function_call_output" and second["input"][2]["call_id"] == "c0"
+    assert r["usage"]["output_tokens"] == 100
+
+
+def test_responses_adapter_falls_back_to_auto_tool_choice_and_drops_rejected_params():
+    import asyncio
+    from engine import TOOLS
+    bad = _RespClient.BadRequestError
+    c = _RespClient([bad("Invalid value for tool_choice"), bad("Unsupported parameter: parallel_tool_calls"),
+                     _r([("submit_transfer", {"amount": 1, "rationale": "x"})])])
+    a = _resp_agent(c)
+    asyncio.run(a.act("S", "U", [TOOLS["submit_transfer"]], "submit_transfer", None, None, {}))
+    assert c.seen[-1]["tool_choice"] == "auto" and "parallel_tool_calls" not in c.seen[-1]
+    assert a.auto_choice and "parallel_tool_calls" in a.drop
+
+
+def test_sol_is_configured_for_the_responses_api_and_selected_by_make_agent():
+    import yaml, run
+    from agents import OpenAIResponsesAgent, OpenAIAgent, Budget
+    cfg = yaml.safe_load(open("config.yaml"))
+    sol = next(m for m in cfg["models"] if m["label"] == "openai_sol")
+    assert sol["api"] == "responses" and sol["reasoning_effort"] == "low" and sol["max_tokens"] == 4000
+    import os; os.environ.setdefault("OPENAI_API_KEY", "test")
+    assert isinstance(run.make_agent(sol, cfg, Budget(1, 2, 10)), OpenAIResponsesAgent)
+    luna = next(m for m in cfg["models"] if m["label"] == "openai")
+    a = run.make_agent(luna, cfg, Budget(1, .1, .5))
+    assert type(a) is OpenAIAgent and a.max_tokens == cfg["max_tokens"]
