@@ -170,3 +170,32 @@ def test_git_commit_falls_back_to_the_shipped_file(tmp_path):
     assert git_commit(tmp_path) == "abc1234"
     if (ROOT / ".git").exists():                            # a zip copy has no repository to compare with
         assert git_commit(ROOT) == subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+
+
+def test_append_line_retries_a_locked_file(tmp_path, monkeypatch):
+    import run as runmod
+    p = tmp_path / "games.jsonl"
+    real_open, calls = Path.open, {"n": 0}
+
+    def flaky(self, *a, **k):
+        calls["n"] += 1
+        if calls["n"] <= 2:
+            raise PermissionError("locked by sync client")
+        return real_open(self, *a, **k)
+
+    monkeypatch.setattr(Path, "open", flaky)
+    monkeypatch.setattr(runmod.time, "sleep", lambda s: None)
+    runmod.append_line(p, "one\n")
+    opens = calls["n"]                                      # read_text below also goes through the patched open
+    assert opens == 3                                       # two refusals, then success
+    assert p.read_text() == "one\n"
+    calls["n"] = -100                                       # permanently locked: the error is raised
+    with pytest.raises(PermissionError):
+        runmod.append_line(p, "two\n", tries=3)
+
+
+def test_batch_files_use_windows_line_endings():
+    for name in ("setup_windows.bat", "run_openai.bat"):
+        raw = (ROOT / name).read_bytes()
+        assert b"\r\n" in raw and raw.count(b"\n") == raw.count(b"\r\n"), name
+        assert b"--models openai" in raw or name == "setup_windows.bat"
