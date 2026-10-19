@@ -289,3 +289,81 @@ def test_cross_script_quotes_the_pairing_and_uses_windows_line_endings():
     text = raw.decode()
     assert '--pair "claude>openai"' in text and '--pair "openai>claude"' in text
     assert "--pair claude>" not in text and "--pair openai>" not in text     # an unquoted > would redirect output
+
+
+def test_stronger_models_never_run_by_default_and_arms_subset_works(tmp_path):
+    out = tmp_path / "default"
+    assert sh("run.py", "--mock", "--out", str(out), "--games-per-cell", "2").returncode == 0
+    assert {g["game"]["model_label"] for g in read(out)} == {"claude", "openai"}      # sensitivity models are opt-in
+    out = tmp_path / "subset"
+    r = sh("run.py", "--mock", "--models", "claude_sonnet", "--arms", "A0,C1,C3,D1,D3", "--out", str(out), "--games-per-cell", "4")
+    assert r.returncode == 0, r.stderr
+    recs = read(out)
+    assert {g["game"]["arm"] for g in recs} == {"A0", "C1", "C3", "D1", "D3"} and len(recs) == 5 * 4
+    assert {g["game"]["model_label"] for g in recs} == {"claude_sonnet"}
+    assert sh("audit.py", str(out), "--cells", str(tmp_path / "none")).returncode == 0
+    assert sh("run.py", "--mock", "--models", "claude_sonnet", "--arms", "A0,C1", "--out", str(out), "--games-per-cell", "4").returncode != 0
+    assert sh("run.py", "--mock", "--arms", "Z9", "--out", str(tmp_path / "z")).returncode != 0
+    if HAVE_BASELINE:     # arms that were not played give n/a, not a crash
+        r = sh("analyze.py", str(out), "--out", str(tmp_path / "an"))
+        assert r.returncode == 0, r.stderr
+        h = pd.read_csv(tmp_path / "an" / "hypotheses.csv").set_index("id")
+        assert h.loc["H1", "label"] in ("positive", "null", "inconclusive")
+        assert pd.isna(h.loc["H3a", "label"]) or h.loc["H3a", "label"] == "n/a"      # pandas reads the string n/a as NaN
+
+
+def test_stronger_model_config_matches_the_pricing_page():
+    import yaml
+    m = {x["label"]: x for x in yaml.safe_load((ROOT / "config.yaml").read_text())["models"]}
+    assert (m["claude_sonnet"]["id"], m["claude_sonnet"]["price_in"], m["claude_sonnet"]["price_out"]) == ("claude-sonnet-5-5", 2.0, 10.0)
+    assert (m["openai_sol"]["id"], m["openai_sol"]["price_in"], m["openai_sol"]["price_out"]) == ("gpt-6.1-sol", 2.0, 10.0)
+    assert m["claude_sonnet"]["sensitivity"] and m["openai_sol"]["sensitivity"]
+
+
+def test_theory_table_values():
+    from theory import predictions
+    t = {r["arm"]: r for r in predictions()}
+    for arm in ("A0", "C1", "C2", "C4", "D1", "D2", "D4"):
+        assert t[arm]["sent"] == 0 and abs(t[arm]["eff"] - 100 / 3) < 1e-9
+    assert t["C3"]["sent"] == 10 and t["C3"]["eff"] == 100
+    assert t["D3"]["sent"] == 5 and abs(t["D3"]["eff"] - 200 / 3) < 1e-9
+    assert [r["arm"] for r in predictions()] == ["A0", "C1", "C2", "C3", "C4", "D1", "D2", "D3", "D4"]
+
+
+def test_every_bat_file_uses_windows_line_endings_and_quotes_pairs():
+    for f in ROOT.glob("*.bat"):
+        raw = f.read_bytes()
+        assert raw.count(b"\n") == raw.count(b"\r\n"), f.name
+    text = (ROOT / "run_stronger_openai.bat").read_text()
+    assert "--arms A0,C1,C3,D1,D3" in text and "--models openai_sol" in text and "--games-per-cell 40" in text
+
+
+def test_anthropic_adapter_falls_back_to_auto_tool_choice_even_under_concurrency():
+    import asyncio
+    from types import SimpleNamespace
+    from agents import AnthropicAgent
+
+    seen = []
+
+    class Bad(Exception):
+        pass
+
+    class Resp:
+        content, stop_reason = [], "end_turn"
+        usage = SimpleNamespace(input_tokens=1, output_tokens=1)
+
+    async def create(**kw):
+        seen.append(kw["tool_choice"]["type"])
+        if kw["tool_choice"]["type"] in ("any", "tool"):
+            await asyncio.sleep(0.01)
+            raise Bad('tool_choice: type "tool" and "any" are not supported for this model.')
+        return Resp()
+
+    a = AnthropicAgent("m", 1.0, 100, Budget(1, 1, 1), api_key="k")
+    a._anthropic = SimpleNamespace(BadRequestError=Bad)
+    a.client = SimpleNamespace(messages=SimpleNamespace(create=create))
+
+    async def go():
+        return await asyncio.gather(*[a._complete("s", [], [], None) for _ in range(3)])      # three calls in flight at once
+    asyncio.run(go())
+    assert a.auto_choice and seen.count("auto") == 3

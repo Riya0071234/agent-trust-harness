@@ -13,11 +13,11 @@ python run.py --smoke --pair "claude>openai" --out results\smoke_cross
 if errorlevel 1 goto fail
 echo.
 echo Step 2 of 3: Claude buys from an OpenAI supplier, 1440 games.
-python run.py --pair "claude>openai" --out results\cross_claude_buys --games-per-cell 160 --max-spend 3
+python run.py --pair "claude>openai" --out results\cross_claude_buys --games-per-cell 160 --max-spend 0.9
 if errorlevel 1 goto fail
 echo.
 echo Step 3 of 3: OpenAI buys from a Claude supplier, 1440 games.
-python run.py --pair "openai>claude" --out results\cross_openai_buys --games-per-cell 160 --max-spend 3
+python run.py --pair "openai>claude" --out results\cross_openai_buys --games-per-cell 160 --max-spend 0.9
 if errorlevel 1 goto fail
 echo.
 echo Both runs finished if you saw two lines starting with Finished. Tell Claude: cross-vendor done.
