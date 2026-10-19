@@ -1,4 +1,4 @@
-# Results: combined
+# Results: selfplay
 
 Sources: results/claude, results/openai.
 Run started 2026-10-19T06:34:44Z. Models: {"claude": "claude-haiku-5-5", "openai": "gpt-6-luna"}. Games per cell: 160. Mock run: False. Spend: claude $0.97, openai $0.37.

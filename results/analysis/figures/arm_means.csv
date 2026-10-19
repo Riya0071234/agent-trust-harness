@@ -1,0 +1,47 @@
+setting,arm,games,mean_eff,ci_lo,ci_hi,sd_eff
+"Haiku, self-play",A0,160,33.33,33.33,33.33,0.0
+"Haiku, self-play",C1,160,61.04,57.71,64.33,21.01
+"Haiku, self-play",C2,160,69.25,64.16,74.17,33.03
+"Haiku, self-play",C3,160,87.92,83.75,91.67,25.76
+"Haiku, self-play",C4,160,33.33,33.33,33.33,0.0
+"Haiku, self-play",D1,160,58.83,56.12,61.58,17.61
+"Haiku, self-play",D2,160,53.75,50.21,57.29,22.74
+"Haiku, self-play",D3,160,66.67,61.67,72.08,33.44
+"Haiku, self-play",D4,160,33.75,33.33,34.37,3.72
+"Luna, self-play",A0,160,33.33,33.33,33.33,0.0
+"Luna, self-play",C1,160,33.54,33.37,33.75,1.16
+"Luna, self-play",C2,160,33.33,33.33,33.33,0.0
+"Luna, self-play",C3,160,68.75,63.33,74.17,33.37
+"Luna, self-play",C4,160,33.33,33.33,33.33,0.0
+"Luna, self-play",D1,160,33.92,33.37,34.87,5.41
+"Luna, self-play",D2,160,33.33,33.33,33.33,0.0
+"Luna, self-play",D3,160,57.92,52.92,62.92,32.27
+"Luna, self-play",D4,160,33.33,33.33,33.33,0.0
+Haiku buys from Luna,A0,160,33.33,33.33,33.33,0.0
+Haiku buys from Luna,C1,160,53.42,49.33,57.38,26.08
+Haiku buys from Luna,C2,160,91.25,87.5,94.58,22.58
+Haiku buys from Luna,C3,160,70.42,65.0,75.42,33.23
+Haiku buys from Luna,C4,160,33.33,33.33,33.33,0.0
+Haiku buys from Luna,D1,160,47.58,44.25,51.04,22.15
+Haiku buys from Luna,D2,160,54.17,51.25,57.08,18.22
+Haiku buys from Luna,D3,160,65.83,60.83,71.25,33.43
+Haiku buys from Luna,D4,160,33.46,33.33,33.71,1.58
+Luna buys from Haiku,A0,160,33.33,33.33,33.33,0.0
+Luna buys from Haiku,C1,160,35.83,34.67,37.25,8.45
+Luna buys from Haiku,C2,160,33.33,33.33,33.33,0.0
+Luna buys from Haiku,C3,160,100.0,100.0,100.0,0.0
+Luna buys from Haiku,C4,160,33.33,33.33,33.33,0.0
+Luna buys from Haiku,D1,160,36.46,34.96,38.12,10.17
+Luna buys from Haiku,D2,160,33.33,33.33,33.33,0.0
+Luna buys from Haiku,D3,160,66.67,61.67,71.67,33.44
+Luna buys from Haiku,D4,160,33.33,33.33,33.33,0.0
+"Claude Sonnet 5.5, self-play",A0,18,67.78,66.67,70.0,4.71
+"Claude Sonnet 5.5, self-play",C1,18,37.78,33.33,42.96,10.48
+"Claude Sonnet 5.5, self-play",C3,18,100.0,100.0,100.0,0.0
+"Claude Sonnet 5.5, self-play",D1,18,39.26,34.44,45.19,11.86
+"Claude Sonnet 5.5, self-play",D3,18,66.67,51.85,81.48,34.3
+"gpt-6.1-sol, self-play",A0,40,33.33,33.33,33.33,0.0
+"gpt-6.1-sol, self-play",C1,40,34.83,33.33,37.83,9.49
+"gpt-6.1-sol, self-play",C3,40,100.0,100.0,100.0,0.0
+"gpt-6.1-sol, self-play",D1,40,34.17,33.33,35.83,5.27
+"gpt-6.1-sol, self-play",D3,40,66.67,56.67,76.67,33.76

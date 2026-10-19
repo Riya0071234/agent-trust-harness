@@ -1,4 +1,4 @@
-# Results: claude
+# Results: selfplay_haiku
 
 Sources: results/claude.
 Run started 2026-10-19T06:34:44Z. Models: {"claude": "claude-haiku-5-5"}. Games per cell: 160. Mock run: False. Spend: claude $0.97.

@@ -1,5 +1,5 @@
 @echo off
-cd /d "%~dp0"
+cd /d "%~dp0..\.."
 call .venv\Scripts\activate.bat
 if defined ANTHROPIC_API_KEY goto key2
 set /p ANTHROPIC_API_KEY=Paste your Anthropic (Claude) key here and press Enter: 

@@ -207,7 +207,7 @@ def test_append_line_retries_a_locked_file(tmp_path, monkeypatch):
 
 def test_batch_files_use_windows_line_endings():
     for name in ("setup_windows.bat", "run_openai.bat"):
-        raw = (ROOT / name).read_bytes()
+        raw = (ROOT / "scripts" / "windows" / name).read_bytes()
         assert b"\r\n" in raw and raw.count(b"\n") == raw.count(b"\r\n"), name
         assert b"--models openai" in raw or name == "setup_windows.bat"
 
@@ -284,7 +284,7 @@ def test_pair_option_rejects_bad_input_and_a_changed_pairing(tmp_path):
 
 
 def test_cross_script_quotes_the_pairing_and_uses_windows_line_endings():
-    raw = (ROOT / "run_cross.bat").read_bytes()
+    raw = (ROOT / "scripts" / "windows" / "run_cross.bat").read_bytes()
     assert raw.count(b"\n") == raw.count(b"\r\n")
     text = raw.decode()
     assert '--pair "claude>openai"' in text and '--pair "openai>claude"' in text
@@ -331,10 +331,10 @@ def test_theory_table_values():
 
 
 def test_every_bat_file_uses_windows_line_endings_and_quotes_pairs():
-    for f in ROOT.glob("*.bat"):
+    for f in (ROOT / "scripts" / "windows").glob("*.bat"):
         raw = f.read_bytes()
         assert raw.count(b"\n") == raw.count(b"\r\n"), f.name
-    text = (ROOT / "run_stronger_openai.bat").read_text()
+    text = (ROOT / "scripts" / "windows" / "run_stronger_openai.bat").read_text()
     assert "--arms A0,C1,C3,D1,D3" in text and "--models openai_sol" in text and "--games-per-cell 40" in text
 
 

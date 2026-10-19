@@ -1,5 +1,5 @@
 @echo off
-cd /d "%~dp0"
+cd /d "%~dp0..\.."
 echo Creating the Python environment. This needs Python 3.12. If it fails, run:  py install 3.12
 py -3.12 -m venv .venv
 if errorlevel 1 goto fail
@@ -10,7 +10,7 @@ python -m pytest -q tests
 if errorlevel 1 goto fail
 echo.
 echo SETUP OK. The last test line above should say passed and not failed.
-echo Next: double-click run_openai.bat
+echo Next: double-click scripts\windows\run_openai.bat
 pause
 exit /b 0
 :fail

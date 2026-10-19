@@ -264,7 +264,7 @@ def merge_manifests(run_dirs: list[Path]) -> dict:
 
 def main(run_dirs: list[str], out_dir: str | None = None):
     dirs = [Path(d) for d in run_dirs]
-    run = Path(out_dir) if out_dir else (dirs[0] if len(dirs) == 1 else Path("results/combined"))
+    run = Path(out_dir) if out_dir else (dirs[0] if len(dirs) == 1 else Path("results/analysis/selfplay"))
     run.mkdir(parents=True, exist_ok=True)
     manifest = merge_manifests(dirs)
     cfg = manifest["config"]
@@ -323,6 +323,6 @@ if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("run_dirs", nargs="+", help="one or more run directories containing games.jsonl and manifest.json")
-    ap.add_argument("--out", default=None, help="where to write results (default: the run dir, or results/combined)")
+    ap.add_argument("--out", default=None, help="where to write results (default: the run dir, or results/analysis/selfplay)")
     a = ap.parse_args()
     main(a.run_dirs, a.out)

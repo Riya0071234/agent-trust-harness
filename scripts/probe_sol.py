@@ -1,6 +1,6 @@
 """probe_sol.py - find which request shape gpt-6.1-sol accepts for function tools.
 Makes a handful of tiny calls (a few cents at most). Prints PASS/FAIL per variant; never prints the key.
-Usage (Windows): .venv\\Scripts\\python probe_sol.py   (asks for the OpenAI key, or reads OPENAI_API_KEY)"""
+Usage (Windows): .venv\\Scripts\\python scripts\\probe_sol.py   (asks for the OpenAI key, or reads OPENAI_API_KEY)"""
 import asyncio, getpass, os, sys
 import openai
 
