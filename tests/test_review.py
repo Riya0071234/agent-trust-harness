@@ -168,4 +168,5 @@ def test_git_commit_falls_back_to_the_shipped_file(tmp_path):
     assert git_commit(tmp_path) is None                     # no repository, no file
     (tmp_path / "GIT_COMMIT").write_text("abc1234\n")
     assert git_commit(tmp_path) == "abc1234"
-    assert git_commit(ROOT) == subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+    if (ROOT / ".git").exists():                            # a zip copy has no repository to compare with
+        assert git_commit(ROOT) == subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
