@@ -255,6 +255,9 @@ async def main_async(args):
                          | ({"forced tool_choice (auto used)"} if getattr(a, "auto_choice", False) else set()))
         if dropped:
             manifest.setdefault("dropped_parameters", {})[label] = dropped
+        seen = sorted(getattr(a, "seen_models", set()))   # version strings the APIs returned (not just the alias requested)
+        if seen:
+            manifest.setdefault("model_versions_returned", {})[label] = seen
     manifest_path.write_text(json.dumps(manifest, indent=2))
     print(f"Finished. {stats['done']} games written ({stats['aborted']} aborted). Spend: "
           + ", ".join(f"{k} ${b.spent:.4f}" for k, b in budgets.items()), flush=True)
