@@ -181,3 +181,7 @@ No game, prompt, setting, hypothesis or analysis rule changed, and no collected 
 - *Manipulation check, added after the data and labelled as such.* Suppliers told to act for a self-interested principal returned almost as much as fair ones when they chose the return (Haiku suppliers 44% versus 51% of the tripled amount; Luna suppliers in cross-vendor play 77% versus 80%), and every unsigned commitment followed by a prepayment was kept. The theory benchmark's assumption that self-interested suppliers return nothing is therefore not how these suppliers behaved. Reported as a limitation; no hypothesis is re-labelled.
 - *Noted after the data.* A0 has no principal type, so its buyer is not told that half of suppliers are self-interested; A0 against C1 changes more than the message.
 - *Layout.* Analysis outputs moved to `results/analysis/`, Windows scripts and `probe_sol.py` to `scripts/`, requirements pinned to the versions used, and `scripts/reproduce.sh` plus a GitHub Actions check added.
+
+### Deviation log, 2026-10-19, commit messages (history only)
+
+The history of `main` was rewritten once to remove the co-author and session lines that the drafting assistant appended to commit messages. File contents, authors, dates and subjects are unchanged, but every commit ID changed. The original history is kept on the branch `original-history`, where every commit ID cited in this file and in the run manifests still resolves; `COMMIT_MAP.md` maps each original commit to its counterpart on `main` and shows how to check that the contents are identical.

@@ -4,7 +4,7 @@ A small, reproducible harness for measuring what trust infrastructure adds when 
 
 The infrastructure is simulated: an escrow holds an Ed25519 key that stands in for the key a TEE would hold, and the signatures and checks are real. The same interface could later point at a real TEE attestation or an MPC computation.
 
-`PREREG.md` holds the hypotheses, sample-size rule and analysis, committed before any model was run (Experiments 1 and 2; Experiments 3 and 4 were registered later, after the first results, and say so). The commit times are from local git history and were first published on 2026-10-19, after the data; they cannot be checked independently of the author. `results/` holds what came out.
+`PREREG.md` holds the hypotheses, sample-size rule and analysis, committed before any model was run (Experiments 1 and 2; Experiments 3 and 4 were registered later, after the first results, and say so). The commit times are from local git history and were first published on 2026-10-19, after the data; they cannot be checked independently of the author. Commit IDs cited in `PREREG.md` and the run manifests are on the branch `original-history`; `COMMIT_MAP.md` maps them to `main`. `results/` holds what came out.
 
 ## How it works
 
