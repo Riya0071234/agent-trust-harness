@@ -40,6 +40,8 @@ python analyze.py results/claude results/openai --out results/combined
 python audit.py results/claude results/openai --cells results/combined     # must print AUDIT PASS
 ```
 
+On Windows, double-click `setup_windows.bat` once (it needs Python 3.12), then `run_openai.bat`, which asks for the key and runs the OpenAI arm.
+
 If a run stops (crash or spend cap), run the same command again; finished games are skipped. `--mock` runs a scripted stand-in for free; never report its numbers.
 
 ## Limits

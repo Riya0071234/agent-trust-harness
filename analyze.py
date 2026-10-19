@@ -242,6 +242,12 @@ def md_table(df: pd.DataFrame, floats: dict | None = None) -> str:
     return "\n".join(lines)
 
 
+def spend_text(spend) -> str:
+    if isinstance(spend, dict):
+        return ", ".join(f"{k} ${v:.2f}" for k, v in sorted(spend.items()))
+    return str(spend)
+
+
 def merge_manifests(run_dirs: list[Path]) -> dict:
     ms = [json.loads((d / "manifest.json").read_text()) for d in run_dirs]
     m = dict(ms[0])
@@ -281,14 +287,15 @@ def main(run_dirs: list[str], out_dir: str | None = None):
              f"Sources: {', '.join(str(d) for d in dirs)}.",
              f"Run started {manifest['run_started_utc']}. Models: {json.dumps(manifest['model_ids'])}. "
              f"Games per cell: {manifest['games_per_cell']}. Mock run: {manifest['mock']}. "
-             f"Spend: ${manifest.get('spend_usd', 'n/a')}.", ""]
+             f"Spend: {spend_text(manifest.get('spend_usd', 'n/a'))}.", ""]
     if manifest["mock"]:
         lines += ["**This was a mock run with a scripted stand-in. None of these numbers describe a model.**", ""]
     lines += [f"Effects are differences in joint efficiency, in percentage points, averaged over models with equal weight. "
               f"Interval: {int(cfg['analysis']['ci_level'] * 100)}% percentile bootstrap, {cfg['analysis']['bootstrap_resamples']} resamples. "
               f"Smallest effect of interest: {delta} points. Label rule: positive = interval excludes zero in the predicted "
               f"direction; null = interval inside +/-{delta}; otherwise inconclusive. 'supported' says whether the pre-registered "
-              f"prediction held, which for a null-predicted hypothesis (H3b, G3b) means the label is null.", "",
+              f"prediction held, which for a null-predicted hypothesis (H3b, G3b) means the interval lies inside +/-{delta} "
+              f"(label null, or positive with a small difference).", "",
               "## Hypotheses", "", md_table(h, {"est": 1, "lo": 1, "hi": 1, "p_tost": 3}), ""]
     lines += ["## AI advantage, in the role's two senses", "",
               "- Versus agents without infrastructure: H1 (C3 - C1) in Experiment 1, G1 (D3 - D1) in Experiment 2.",

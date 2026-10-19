@@ -73,6 +73,20 @@ def code_hashes() -> dict[str, str]:
     return {f: hashlib.sha256((root / f).read_bytes()).hexdigest()[:16] for f in GAME_LOGIC_FILES}
 
 
+def append_line(path: Path, line: str, tries: int = 6) -> None:
+    """Append one line. A sync client (OneDrive) can lock the file for a moment, so a refused open is
+    retried a few times instead of ending the run. A refused open writes nothing, so no line is half-written."""
+    for attempt in range(tries):
+        try:
+            with path.open("a") as f:
+                f.write(line)
+            return
+        except PermissionError:
+            if attempt == tries - 1:
+                raise
+            time.sleep(0.5 * (attempt + 1))
+
+
 def restore_spend(records: list[dict], budgets: dict) -> None:
     """Add the token cost of games already on disk to each model's budget, so the cap and the
     manifest's spend are cumulative across resumes rather than per session."""
@@ -188,8 +202,7 @@ async def main_async(args):
                 return
             rec["game"]["model_id"] = model_ids[label]
             async with lock:
-                with games_path.open("a") as f:
-                    f.write(json.dumps(rec) + "\n")
+                append_line(games_path, json.dumps(rec) + "\n")
                 stats["done"] += 1
                 stats["aborted"] += 1 if rec["aborted"] else 0
                 per_model_done[label] += 1
