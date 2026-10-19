@@ -102,6 +102,7 @@ Requests name an alias, not a dated snapshot: `claude-haiku-5-5`, `claude-sonnet
 8. Multi-turn negotiation with offers and counter-offers, combined with repeated play.
 9. Elicit each agent's stated probability that its counterpart is fair, to check calibration, and tell some agents that they and their counterpart run inside attested hardware.
 10. Register the next study on OSF before collecting data, so its timestamps are independent of the author.
+11. A matching variant (Experiment 6). The SINE brief is about agents making matches, so the next game should be a two-sided matching market rather than a single payment. Each agent holds private preferences, for example a buyer and a supplier ranking each other, and a deferred-acceptance (Gale–Shapley) procedure produces the match. The mechanism is strategy-proof for the proposing side, so the open question is how LLM agents behave around it: do they report preferences truthfully, do they exaggerate or hide them, and does a signed or verified statement of preferences change that, as signed commitments changed prepayment here? The stable matching computed from true preferences is the benchmark, as `theory.py` is for this game. This would be pre-registered before any run, like the others.
 
 ## Licence
 
