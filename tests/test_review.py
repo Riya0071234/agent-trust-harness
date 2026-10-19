@@ -161,3 +161,11 @@ def test_audit_flags_artifact_that_differs_from_trustee_call(tmp_path):
     write(out, recs)
     r = sh("audit.py", str(out))
     assert r.returncode == 1 and "differs from the trustee's call" in r.stdout
+
+
+def test_git_commit_falls_back_to_the_shipped_file(tmp_path):
+    from run import git_commit
+    assert git_commit(tmp_path) is None                     # no repository, no file
+    (tmp_path / "GIT_COMMIT").write_text("abc1234\n")
+    assert git_commit(tmp_path) == "abc1234"
+    assert git_commit(ROOT) == subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
