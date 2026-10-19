@@ -1,0 +1,127 @@
+{
+  "run_started_utc": "2026-10-19T09:34:16Z",
+  "mock": false,
+  "smoke": false,
+  "games_per_cell": 160,
+  "experiments": [
+    1,
+    2
+  ],
+  "model_ids": {
+    "claude": "claude-haiku-5-5",
+    "openai": "gpt-6-luna"
+  },
+  "providers": {
+    "claude": "anthropic",
+    "openai": "openai"
+  },
+  "pair": "claude>openai",
+  "config": {
+    "seed": 20261014,
+    "temperature": 1.0,
+    "max_tokens": 1500,
+    "concurrency": 6,
+    "games_per_cell": 160,
+    "models": [
+      {
+        "label": "claude",
+        "provider": "anthropic",
+        "id": "claude-haiku-5-5",
+        "price_in": 0.1,
+        "price_out": 0.5,
+        "max_spend_usd": 5.0
+      },
+      {
+        "label": "openai",
+        "provider": "openai",
+        "id": "gpt-6-luna",
+        "price_in": 0.1,
+        "price_out": 0.5,
+        "max_spend_usd": 5.0,
+        "reasoning_effort": "none"
+      },
+      {
+        "label": "claude_sonnet",
+        "provider": "anthropic",
+        "id": "claude-sonnet-5-5",
+        "price_in": 2.0,
+        "price_out": 10.0,
+        "max_spend_usd": 2.0,
+        "sensitivity": true
+      },
+      {
+        "label": "openai_sol",
+        "provider": "openai",
+        "id": "gpt-6.1-sol",
+        "price_in": 2.0,
+        "price_out": 10.0,
+        "max_spend_usd": 3.0,
+        "reasoning_effort": "none",
+        "sensitivity": true
+      }
+    ],
+    "experiments": {
+      "1": [
+        "A0",
+        "C1",
+        "C2",
+        "C3",
+        "C4"
+      ],
+      "2": [
+        "D1",
+        "D2",
+        "D3",
+        "D4"
+      ]
+    },
+    "analysis": {
+      "bootstrap_resamples": 5000,
+      "bootstrap_seed": 7,
+      "ci_level": 0.95,
+      "smallest_effect_points": 10,
+      "human_baseline_csv": "data/human_baseline_johnson_mislin_2011.csv"
+    }
+  },
+  "prompt_hashes": {
+    "check_system": "9e06d2428b1b1ba6",
+    "check_user": "542ae519e5bf470d",
+    "env_sender_A0": "ebf2d7f9ed523fe0",
+    "env_sender_commit": "a062a6d67848ceda",
+    "env_sender_cred_plain": "d157ffeae553dc29",
+    "env_sender_cred_signed": "2383dc3ab4ab9d54",
+    "env_sender_message": "bbcdfb9028d04d10",
+    "env_sender_rule": "b9fc4193cb74f2cf",
+    "env_trustee_A0": "974a6d8cb42fb107",
+    "env_trustee_commit_auto": "affdc8cccfec737f",
+    "env_trustee_commit_manual": "4a2c4b2b1a312f95",
+    "env_trustee_cred_plain": "58990380e2823f7e",
+    "env_trustee_cred_signed": "efc136ab07d69b8e",
+    "env_trustee_message": "094173e974686786",
+    "env_trustee_rule": "70aa8779f6e3adca",
+    "principal_fair": "d6c9aa2e8a619ffa",
+    "principal_none": "1deb59398d7e6a66",
+    "principal_self_interested": "c88d05ebb2aade75",
+    "sender_base": "772bb9ab07f90e8a",
+    "trustee_base": "1c145921ee8cebd2",
+    "typeline_plain": "2c5d9c152f5ff09a",
+    "typeline_typed": "64f924ef78864979"
+  },
+  "git_commit": "fe7bcc9dde1680fdf104d28818f1362c5351e0ff",
+  "code_hashes": {
+    "engine.py": "8a1f68b732bd1a60",
+    "escrow.py": "3b719e94f9892da1",
+    "agents.py": "8f2642d62ce930eb"
+  },
+  "python": "3.12.10",
+  "planned_games": 1440,
+  "git_commits": [
+    "fe7bcc9dde1680fdf104d28818f1362c5351e0ff"
+  ],
+  "finished_utc": "2026-10-19T10:06:10Z",
+  "spend_usd": {
+    "claude": 0.4932,
+    "openai": 0.1797
+  },
+  "stopped_by_cap": []
+}

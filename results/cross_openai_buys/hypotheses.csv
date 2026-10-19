@@ -1,0 +1,12 @@
+id,description,predicted,est,lo,hi,p_tost,label,supported,small,label_comprehension_only
+H1,Infrastructure effect: C3 - C1,C3 > C1,64.16666666666669,62.70833333333335,65.37500000000001,1.0,positive,yes,False,positive
+H2,Claim only: C2 - C1,either direction,-2.5,-3.9166666666666643,-1.2916666666666643,0.0,positive,no direction predicted,True,positive
+H3a,Verification matters: C3 - C4,C3 > C4,66.66666666666669,66.66666666666669,66.66666666666669,1.0,positive,yes,False,positive
+H3b,Failed verification is discounted: C4 - C1,C4 ~ C1 (null predicted),-2.5,-3.8333333333333357,-1.3333333333333357,0.0,positive,yes (equivalent within +/-smallest effect; small non-zero difference),True,positive
+H4,"Agents vs humans, no infrastructure: A0 - humans","two-sided, no direction",-34.35135135135136,-35.671283783783785,-33.004391891891906,1.0,positive,no direction predicted,False,positive
+H4b,AI advantage vs humans: C3 - humans,C3 > humans,32.31531531531532,30.97297297297297,33.639752252252265,1.0,positive,yes,False,positive
+G1,Verified credentials: D3 - D1,D3 > D1,30.208333333333336,24.750000000000014,35.58333333333334,1.0,positive,yes,False,positive
+G2,Unsigned credential: D2 - D1,either direction,-3.125,-4.833333333333329,-1.6666666666666643,0.0,positive,no direction predicted,True,positive
+G3a,Verification matters: D3 - D4,D3 > D4,33.333333333333336,28.333333333333343,38.75000000000001,1.0,positive,yes,False,positive
+G3b,Failed verification is discounted: D4 - D1,D4 ~ D1 (null predicted),-3.125,-4.833333333333329,-1.6666666666666643,0.0,positive,yes (equivalent within +/-smallest effect; small non-zero difference),True,positive
+G4,Credentials improve discrimination: (fair - self-interested) gap in D3 minus D1,gap larger in D3,66.41666666666669,63.33333333333334,69.66666666666667,1.0,positive,yes,False,positive

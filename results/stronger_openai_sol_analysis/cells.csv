@@ -1,0 +1,6 @@
+arm,model,games,aborted,malformed_outputs,mean_eff_pts,mean_sent,mean_sender_pay,mba_rate,exploit_rate,mean_return_share,mean_stated_share_pct,mean_promise_gap_pts,verify_rate,comprehension_ok
+A0,openai_sol,40,0,0,33.33333333333333,0.0,10.0,0.0,0.0,,,,0.0,1.0
+C1,openai_sol,40,0,0,34.83333333333333,0.225,10.225,0.025,0.0,0.6666666666666666,,,0.0,1.0
+C3,openai_sol,40,0,0,100.0,10.0,12.5,1.0,0.0,0.41666666666666663,42.0,0.0,1.0,1.0
+D1,openai_sol,40,0,0,34.166666666666664,0.125,10.125,0.025,0.0,0.6666666666666666,,,0.0,1.0
+D3,openai_sol,40,0,0,66.66666666666666,5.0,12.5,0.5,0.0,0.5,,,0.5,1.0
