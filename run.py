@@ -23,7 +23,7 @@ from pathlib import Path
 
 import yaml
 
-from agents import AnthropicAgent, Budget, BudgetExceeded, MockAgent, OpenAIAgent
+from agents import OpenAIResponsesAgent, AnthropicAgent, Budget, BudgetExceeded, MockAgent, OpenAIAgent
 from engine import ARMS, load_prompts, play_game, prompt_hashes
 
 SIZES = (160, 80, 40, 20)       # candidate games per cell, largest first
@@ -58,10 +58,12 @@ def git_commit(root: Path | None = None) -> str | None:
 
 
 def make_agent(m: dict, cfg: dict, budget: Budget):
+    max_tokens = m.get("max_tokens", cfg["max_tokens"])     # per-model override (reasoning tokens count against it)
     if m["provider"] == "anthropic":
-        return AnthropicAgent(m["id"], cfg["temperature"], cfg["max_tokens"], budget)
+        return AnthropicAgent(m["id"], cfg["temperature"], max_tokens, budget)
     if m["provider"] == "openai":
-        return OpenAIAgent(m["id"], cfg["temperature"], cfg["max_tokens"], budget, m.get("reasoning_effort"))
+        cls = OpenAIResponsesAgent if m.get("api") == "responses" else OpenAIAgent
+        return cls(m["id"], cfg["temperature"], max_tokens, budget, m.get("reasoning_effort"))
     sys.exit(f"unknown provider {m['provider']!r}")
 
 
@@ -119,7 +121,7 @@ def resume_problems(old: dict, new: dict, cfg: dict, labels: list[str]) -> list[
     for label in labels:
         o, n = old_models.get(label), new_models[label]
         if o is not None:
-            for k in ("id", "reasoning_effort"):
+            for k in ("id", "reasoning_effort", "api", "max_tokens"):
                 if o.get(k) != n.get(k):
                     problems.append(f"model {label}: {k} differs ({o.get(k)!r} on disk, {n.get(k)!r} now)")
     oh = old.get("code_hashes")

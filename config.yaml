@@ -41,7 +41,9 @@ models:
     price_in: 2.00
     price_out: 10.00
     max_spend_usd: 3.0
-    reasoning_effort: none
+    api: responses          # gpt-6.1-sol rejects function tools on Chat Completions (probe_sol.py, 2026-10-19)
+    reasoning_effort: low   # it always reasons; 'none' is unsupported. low = the cheapest setting it accepts
+    max_tokens: 4000        # reasoning tokens count against the per-turn limit
     sensitivity: true
 
 experiments:

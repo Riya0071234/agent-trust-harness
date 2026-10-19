@@ -213,6 +213,87 @@ class OpenAIAgent(ToolLoopAgent):
                 "input_tokens": resp.usage.prompt_tokens, "output_tokens": resp.usage.completion_tokens}
 
 
+class OpenAIResponsesAgent(OpenAIAgent):
+    """OpenAI Responses API with function tools, for models that reject function tools on Chat
+    Completions (gpt-6.1-sol always reasons and does not accept reasoning_effort 'none' there).
+    Same neutral message format in and out. Temperature is not sent (reasoning models fix it).
+    Reasoning tokens are billed as output tokens and are counted in the spend cap."""
+
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self.auto_choice = False
+
+    @staticmethod
+    def _tools(tools):
+        return [{"type": "function", "name": t["name"], "description": t["description"],
+                 "parameters": t["input_schema"]} for t in tools]
+
+    @staticmethod
+    def _input(messages):
+        out = []
+        for m in messages:
+            c = m["content"]
+            if m["role"] == "user":
+                if isinstance(c, str):
+                    out.append({"role": "user", "content": c})
+                else:
+                    for b in c:
+                        out.append({"type": "function_call_output", "call_id": b["tool_use_id"], "output": b["content"]})
+            else:
+                text = "".join(b.get("text", "") for b in c if b.get("type") == "text")
+                if text:
+                    out.append({"role": "assistant", "content": text})
+                for b in c:
+                    if b.get("type") == "tool_use":
+                        out.append({"type": "function_call", "call_id": b["id"], "name": b["name"],
+                                    "arguments": json.dumps(b["input"])})
+        return out
+
+    async def _complete(self, system, messages, tools, force):
+        if self.auto_choice:
+            tool_choice = "auto"
+        else:
+            tool_choice = {"type": "function", "name": force} if force else "required"
+        kwargs = dict(model=self.model_id, instructions=system, input=self._input(messages),
+                      tools=self._tools(tools), tool_choice=tool_choice, parallel_tool_calls=False,
+                      max_output_tokens=self.max_tokens)
+        if self.reasoning_effort:
+            kwargs["reasoning"] = {"effort": self.reasoning_effort}
+        for p in self.drop:
+            kwargs.pop("reasoning" if p == "reasoning_effort" else p, None)
+        for _ in range(4):
+            try:
+                resp = await self.client.responses.create(**kwargs)
+                break
+            except self._bad_request as e:
+                msg = str(e)
+                if "tool_choice" in msg and kwargs.get("tool_choice") != "auto":
+                    self.auto_choice = True       # model rejects forced tool use; the loop retries a missing call
+                    kwargs["tool_choice"] = "auto"
+                    continue
+                bad = next((p for p in ("parallel_tool_calls", "reasoning") if p in msg and p in kwargs), None)
+                if bad is None:
+                    raise
+                self.drop.add("reasoning_effort" if bad == "reasoning" else bad)
+                kwargs.pop(bad)
+        blocks = []
+        for item in resp.output or []:
+            if item.type == "message":
+                text = "".join(getattr(c, "text", "") or "" for c in (item.content or []))
+                if text:
+                    blocks.append({"type": "text", "text": text})
+            elif item.type == "function_call":
+                try:
+                    args = json.loads(item.arguments or "{}")
+                    if not isinstance(args, dict):
+                        args = {}
+                except json.JSONDecodeError:
+                    args = {}
+                blocks.append({"type": "tool_use", "id": item.call_id, "name": item.name, "input": args})
+        return {"content": blocks, "stop_reason": getattr(resp, "status", None) or "completed",
+                "input_tokens": resp.usage.input_tokens, "output_tokens": resp.usage.output_tokens}
+
+
 class MockAgent:
     """Scripted stand-in. Behaves roughly like a cautious buyer and a type-driven supplier.
     Used only to test the pipeline end to end without spending anything."""
