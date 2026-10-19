@@ -3,7 +3,8 @@
 It does not import engine.py. For each game it re-derives, from the logged tool calls and the
 signatures, what was sent, what was returned, whether the commitment or credential verifies,
 the payoffs, efficiency and the comprehension answers, and compares them with what run.py
-stored. It then recomputes the per-cell mean efficiency and compares it with cells.csv.
+stored. It also checks that every game follows its arm's design (trustee type alternation,
+artifact kind, signature valid or invalid as the arm requires, who paid the return). It then recomputes the per-cell mean efficiency and compares it with cells.csv.
 
 Usage: python audit.py results/claude results/openai [--cells results/combined]
        (exit code 1 if anything differs; cells.csv is read from --cells, default: the run dir or results/combined)
@@ -49,11 +50,72 @@ def count_tool_uses(calls, role, phase, names):
     return n
 
 
+# The design, restated independently of engine.py: (artifact kind, tool the trustee calls before play).
+ARM_SPEC = {
+    "A0": ("none", None),
+    "C1": ("message", "send_message"), "C2": ("rule", "state_rule"),
+    "C3": ("commitment", "commit_return_rule"), "C4": ("commitment", "commit_return_rule"),
+    "D1": ("message", "send_message"), "D2": ("credential", "present_credential"),
+    "D3": ("credential", "present_credential"), "D4": ("credential", "present_credential"),
+}
+VERIFY_ARMS = {"C3", "C4", "D3", "D4"}
+
+
+def arm_invariants(r):
+    """Check that each game was built the way PREREG.md says its arm is built."""
+    errs = []
+    g, pre, pk, calls = r["game"], r["pre_play"], r["public_key"], r["calls"]
+    arm, idx, ttype = g["arm"], g["idx"], g["trustee_type"]
+    kind, tool = ARM_SPEC[arm]
+    want_type = ("fair" if idx % 2 == 0 else "self_interested") if arm != "A0" else "none"
+    if ttype != want_type:
+        errs.append(f"{arm} game {idx}: trustee type {ttype!r}, design says {want_type!r}")
+    if pre["kind"] != kind:
+        errs.append(f"{arm}: artifact kind {pre['kind']!r}, design says {kind!r}")
+        return errs
+    asked = last_tool_input(calls, "trustee", "pre", tool) if tool else None
+    if tool and asked is None:
+        errs.append(f"{arm}: no {tool} call recorded for the trustee")
+        return errs
+    if kind == "message" and asked["text"] != pre["text"]:
+        errs.append("logged message differs from the trustee's call")
+    if kind in ("rule", "commitment"):
+        shown = pre["share_percent"] if kind == "rule" else pre["payload"]["share_percent"]
+        if shown != asked["share_percent"]:
+            errs.append("logged percentage differs from the trustee's call")
+    if kind == "credential" and pre["claimed_type"] != asked["claimed_type"]:
+        errs.append("logged credential differs from the trustee's call")
+    if kind in ("commitment", "credential") and pre.get("payload") and pre["payload"]["game_id"] != g["game_id"]:
+        errs.append("signed payload names another game")
+    signed = bool(pre.get("signature"))
+    if arm in ("C3", "C4"):
+        valid = sig_ok(pk, pre["payload"], pre["signature"])
+        if valid != (arm == "C3"):
+            errs.append(f"{arm}: commitment signature valid={valid}, design says {arm == 'C3'}")
+    elif arm in ("D3", "D4"):
+        if pre["claimed_type"] == "none":
+            if signed:
+                errs.append(f"{arm}: a signature on 'no credential'")
+        else:
+            valid = sig_ok(pk, pre["payload"], pre["signature"])
+            want = arm == "D3" and pre["claimed_type"] == ttype
+            if valid != want:
+                errs.append(f"{arm}: credential claiming {pre['claimed_type']!r} for a {ttype!r} principal has valid={valid}, design says {want}")
+    elif signed:
+        errs.append(f"{arm}: unsigned arm carries a signature")
+    if (r["return"]["source"] == "escrow_auto") != (arm == "C3"):
+        errs.append(f"{arm}: return source {r['return']['source']!r}")
+    if arm not in VERIFY_ARMS and r["sender"]["verify_calls"]:
+        errs.append(f"{arm}: sender has no verify tool but verify calls are logged")
+    return errs
+
+
 def audit_game(r):
     errs = []
     if r["aborted"] or r["outcome"] is None:
         return None, errs
     calls, o, pre, pk = r["calls"], r["outcome"], r["pre_play"], r["public_key"]
+    errs += arm_invariants(r)
 
     s_in = last_tool_input(calls, "sender", "decide", "submit_transfer")
     sent = s_in["amount"] if s_in else None

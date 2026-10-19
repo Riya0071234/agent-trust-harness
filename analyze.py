@@ -43,6 +43,9 @@ def human_efficiency(csv_path: Path) -> np.ndarray:
         sys.exit(f"Human baseline not found at {csv_path}. See data/README.md for where to get it.")
     d = pd.read_csv(csv_path)
     d = d[d["rate_of_return"] == 3].dropna(subset=["ave_per_Sent"])
+    # A mean share above 100% of the endowment is impossible. The source table has one such row
+    # (paper_no 66, 160); it is a data-entry artefact and is excluded. The rule uses no agent data.
+    d = d[(d["ave_per_Sent"] >= 0) & (d["ave_per_Sent"] <= 100)]
     p = d["ave_per_Sent"].to_numpy() / 100.0
     return (1 + 2 * p) / 3 * 100
 
@@ -140,7 +143,13 @@ def supported(res: dict, ptype: str, direction: int) -> str:
     if ptype == "none":
         return "no direction predicted"
     if ptype == "null":
-        return {"null": "yes", "positive": "no (differs)", "inconclusive": "not determined"}[res["label"]]
+        # A null prediction means "no difference as large as the smallest effect of interest", so it holds
+        # whenever the interval lies inside +/-delta, even if it also excludes zero (res["small"]).
+        if res["label"] == "null":
+            return "yes"
+        if res["small"]:
+            return "yes (equivalent within +/-smallest effect; small non-zero difference)"
+        return {"positive": "no (differs)", "inconclusive": "not determined"}[res["label"]]
     if res["label"] == "positive":
         return "yes"
     if (direction > 0 and res["hi"] < 0) or (direction < 0 and res["lo"] > 0):
@@ -205,6 +214,9 @@ def cell_table(df, all_df):
                      "mean_eff_pts": d["eff"].mean(), "mean_sent": d["sent"].mean(), "mean_sender_pay": d["sender_pay"].mean(),
                      "mba_rate": d["mba"].mean(), "exploit_rate": d["exploit"].mean(),
                      "mean_return_share": d["return_share"].mean(),
+                     # stated versus actual return (C2, C3, C4): the stated percentage, and actual minus promised points
+                     "mean_stated_share_pct": d["stated_share"].astype(float).mean(),
+                     "mean_promise_gap_pts": d["promise_gap"].astype(float).mean(),
                      "verify_rate": d["verify_called"].mean(), "comprehension_ok": d["comp_ok"].mean()})
     return pd.DataFrame(rows)
 
@@ -285,7 +297,8 @@ def main(run_dirs: list[str], out_dir: str | None = None):
               "- Decomposition: H4 (A0 - humans) is what agents do differently from humans with no infrastructure; H1 is what the "
               "infrastructure adds. Both are reported so an agent effect is not credited to the infrastructure.", ""]
     lines += ["## Cells", "", md_table(cells, {"mean_eff_pts": 1, "mean_sent": 2, "mean_sender_pay": 2, "mba_rate": 2, "exploit_rate": 2,
-                                                  "mean_return_share": 2, "verify_rate": 2, "comprehension_ok": 2}), ""]
+                                                  "mean_return_share": 2, "mean_stated_share_pct": 1, "mean_promise_gap_pts": 2,
+                                                  "verify_rate": 2, "comprehension_ok": 2}), ""]
     v = verification_analysis(df, cfg)
     if len(v):
         lines += ["## Verification (H5, G4)", "", md_table(v, {"verify_rate": 2, "mean_eff_verifiers": 1, "mean_eff_non_verifiers": 1}), ""]
