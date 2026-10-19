@@ -94,7 +94,7 @@ Requests name an alias, not a dated snapshot: `claude-haiku-5-5`, `claude-sonnet
 
 1. Replace the simulated hardware with a real attested enclave or a zero-knowledge or multi-party proof for the verification step, behind the same `verify_commitment` and `verify_credential` tools, so that arms stay comparable. This needs access to CCTI-style infrastructure.
 2. The information-exchange variant: one agent holds private information, a code-based check settles whether a claim about it is true or false without revealing it, and payment is in tokens or access rather than points.
-3. Repeated play and reputation (Berg et al.): how much agents know about each other and about past transactions, and whether scarcity or risk framing changes who breaks trust, as in Akerlof's market for lemons.
+3. Memory and reputation (Experiment 5): a history arm (the buyer sees the supplier's last five outcomes), a signed-history arm (the same record, signed, so it cannot be faked), and a memory arm (the same pair plays five rounds and remembers earlier ones), against the one-shot baseline. Today every game is a fresh conversation with no memory and no record of the counterpart. A later variant adds scarcity or risk framing, as in Akerlof's market for lemons.
 4. A matched Sonnet-versus-gpt-6.1-sol cross-vendor grid at equal reasoning settings, pinned snapshots, and more model families and sizes, so that vendor and capability effects can be separated.
 5. A leakage and security measurement: does the agent reveal private data to its counterpart, and can an adversarial supplier forge or replay a signature?
 6. Prompt-wording sensitivity and a matched human arm or published human data for the same framing.
