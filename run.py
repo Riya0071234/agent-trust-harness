@@ -87,19 +87,24 @@ def append_line(path: Path, line: str, tries: int = 6) -> None:
             time.sleep(0.5 * (attempt + 1))
 
 
-def restore_spend(records: list[dict], budgets: dict) -> None:
+def restore_spend(records: list[dict], budgets: dict, model_ids: dict) -> None:
     """Add the token cost of games already on disk to each model's budget, so the cap and the
-    manifest's spend are cumulative across resumes rather than per session."""
+    manifest's spend are cumulative across resumes rather than per session. Cost is taken call by
+    call, because in a cross-vendor game the two roles are played by different models."""
+    label_of = {mid: label for label, mid in model_ids.items()}
     for rec in records:
-        b = budgets.get(rec["game"]["model_label"])
-        if b is not None:
-            b.add(rec["usage"]["input_tokens"], rec["usage"]["output_tokens"])
+        for c in rec["calls"]:
+            b = budgets.get(label_of.get(c["model"]))
+            if b is not None:
+                b.add(c["usage"]["input_tokens"], c["usage"]["output_tokens"])
 
 
 def resume_problems(old: dict, new: dict, cfg: dict, labels: list[str]) -> list[str]:
     """Reasons a run directory must not be resumed: games played under different prompts, game
     rules or model settings would silently be mixed with the new ones."""
     problems = []
+    if old.get("pair") != new.get("pair"):
+        problems.append(f"the pairing differs ({old.get('pair')!r} on disk, {new.get('pair')!r} now)")
     if old.get("prompt_hashes") != new["prompt_hashes"]:
         problems.append("the prompts differ from those used for the games already on disk")
     oc = old.get("config", {})
@@ -135,10 +140,19 @@ async def main_async(args):
     n = 2 if args.smoke else (args.games_per_cell or cfg["games_per_cell"])
     exps = [1, 2]
 
-    wanted = set(args.models.split(",")) if args.models else {m["label"] for m in cfg["models"]}
+    pair = None
+    if args.pair:                  # cross-vendor games: the buyer is one model, the supplier another
+        if args.models:
+            sys.exit("use either --models (self-play) or --pair (cross-vendor), not both")
+        pair = tuple(args.pair.split(">"))
+        if len(pair) != 2 or pair[0] == pair[1]:
+            sys.exit("--pair must name two different model labels as buyer>supplier, e.g. claude>openai")
+        wanted = set(pair)
+    else:
+        wanted = set(args.models.split(",")) if args.models else {m["label"] for m in cfg["models"]}
     models = [m for m in cfg["models"] if m["label"] in wanted]
-    if not models:
-        sys.exit(f"no models match --models {args.models}")
+    if not models or len(models) != len(wanted):
+        sys.exit(f"no models match {args.pair or args.models}")
     budgets, agents, model_ids = {}, {}, {}
     for m in models:
         cap = args.max_spend if args.max_spend is not None else m["max_spend_usd"]
@@ -149,7 +163,15 @@ async def main_async(args):
             agents[m["label"]] = make_agent(m, cfg, budgets[m["label"]])
             model_ids[m["label"]] = m["id"]
 
-    games = build_games(cfg, exps, n, list(agents))
+    # A unit is what plays a game: one model in both roles, or a buyer>supplier pair. Its label is the
+    # game's model_label, so the analysis treats the two directions of a pair as two "models".
+    if pair:
+        label = f"{pair[0]}>{pair[1]}"
+        units = {label: {"sender": agents[pair[0]], "trustee": agents[pair[1]]}}
+        unit_ids = {label: f"{model_ids[pair[0]]}>{model_ids[pair[1]]}"}
+    else:
+        units, unit_ids = dict(agents), dict(model_ids)
+    games = build_games(cfg, exps, n, list(units))
     games_path = out / "games.jsonl"
     done, existing = set(), []
     if games_path.exists():
@@ -162,6 +184,7 @@ async def main_async(args):
         "run_started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "mock": args.mock, "smoke": args.smoke, "games_per_cell": n, "experiments": exps,
         "model_ids": model_ids, "providers": {m["label"]: m["provider"] for m in models},
+        "pair": args.pair,
         "config": cfg, "prompt_hashes": prompt_hashes(prompts), "git_commit": git_commit(),
         "code_hashes": code_hashes(),
         "python": platform.python_version(), "planned_games": len(games),
@@ -177,7 +200,7 @@ async def main_async(args):
         manifest["resumed_utc"] = old.get("resumed_utc", []) + [time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())]
         prev = old.get("git_commits") or ([old["git_commit"]] if old.get("git_commit") else [])
         manifest["git_commits"] = prev + [c for c in manifest["git_commits"] if c not in prev]
-    restore_spend(existing, budgets)
+    restore_spend(existing, budgets, model_ids)
     manifest_path.write_text(json.dumps(manifest, indent=2))
 
     print(f"{len(games)} planned, {len(done)} already done, {len(todo)} to run.", flush=True)
@@ -187,7 +210,7 @@ async def main_async(args):
     lock = asyncio.Lock()
     stats = {"done": 0, "aborted": 0}
     stopped: set[str] = set()
-    per_model_done = {label: 0 for label in agents}
+    per_unit_done = {label: 0 for label in units}
 
     async def worker(game):
         label = game["model_label"]
@@ -195,17 +218,17 @@ async def main_async(args):
             if label in stopped:
                 return
             try:
-                rec = await play_game(game, agents[label], prompts)
+                rec = await play_game(game, units[label], prompts)
             except BudgetExceeded as e:
                 stopped.add(label)
                 print(f"STOP {label}: {e}", flush=True)
                 return
-            rec["game"]["model_id"] = model_ids[label]
+            rec["game"]["model_id"] = unit_ids[label]
             async with lock:
                 append_line(games_path, json.dumps(rec) + "\n")
                 stats["done"] += 1
                 stats["aborted"] += 1 if rec["aborted"] else 0
-                per_model_done[label] += 1
+                per_unit_done[label] += 1
                 if stats["done"] % 10 == 0 or stats["done"] == len(todo):
                     spend = ", ".join(f"{k} ${b.spent:.2f}" for k, b in budgets.items())
                     print(f"{stats['done']}/{len(todo)} games, {stats['aborted']} aborted, spend: {spend}", flush=True)
@@ -229,7 +252,9 @@ async def main_async(args):
         print("\nSmoke test: size to run (largest size whose projected cost is within "
               f"{int(SAFETY * 100)}% of the cap)", flush=True)
         for label, b in budgets.items():
-            n_label = per_model_done[label] + sum(1 for r in existing if r["game"]["model_label"] == label)
+            # every game of a unit uses each model in it, so count the games a model took part in
+            n_label = (sum(v for u, v in per_unit_done.items() if label in u.split(">"))
+                       + sum(1 for r in existing if label in r["game"]["model_label"].split(">")))
             if n_label == 0:
                 print(f"  {label}: no games finished", flush=True)
                 continue
@@ -246,6 +271,7 @@ if __name__ == "__main__":
     ap.add_argument("--config", default="config.yaml")
     ap.add_argument("--out", required=True)
     ap.add_argument("--models", default=None, help="comma-separated labels from config.yaml (default: all)")
+    ap.add_argument("--pair", default=None, help="cross-vendor run, buyer>supplier model labels, e.g. claude>openai")
     ap.add_argument("--games-per-cell", type=int, default=None)
     ap.add_argument("--max-spend", type=float, default=None, help="override each model's cap")
     ap.add_argument("--concurrency", type=int, default=None)

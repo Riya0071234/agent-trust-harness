@@ -75,17 +75,28 @@ def test_cells_report_stated_share_and_promise_gap(tmp_path):
 
 
 # ------------------------------------------------------------------ spend and resume
-def rec(label, tin, tout):
-    return {"game": {"model_label": label}, "usage": {"input_tokens": tin, "output_tokens": tout}}
+IDS = {"claude": "claude-haiku-5-5", "openai": "gpt-6-luna"}
+
+
+def rec(*calls):
+    """A game record whose calls are (model id, input tokens, output tokens)."""
+    return {"game": {"model_label": "x"},
+            "calls": [{"model": m, "usage": {"input_tokens": i, "output_tokens": o}} for m, i, o in calls]}
 
 
 def test_restore_spend_makes_the_cap_cumulative():
     b = {"claude": Budget(5.0, 0.10, 0.50), "openai": Budget(5.0, 0.10, 0.50)}
-    restore_spend([rec("claude", 1_000_000, 0), rec("claude", 0, 2_000_000), rec("openai", 1_000_000, 0)], b)
+    restore_spend([rec((IDS["claude"], 1_000_000, 0), (IDS["claude"], 0, 2_000_000)), rec((IDS["openai"], 1_000_000, 0))], b, IDS)
     assert b["claude"].spent == pytest.approx(0.10 + 1.00)
     assert b["openai"].spent == pytest.approx(0.10)
-    restore_spend([rec("other", 1, 1)], b)                  # a model not being run is ignored
+    restore_spend([rec(("some-other-model", 1, 1))], b, IDS)    # a model not being run is ignored
     assert b["claude"].spent == pytest.approx(1.10)
+
+
+def test_restore_spend_splits_a_cross_vendor_game_between_the_two_models():
+    b = {"claude": Budget(5.0, 0.10, 0.50), "openai": Budget(5.0, 0.10, 0.50)}
+    restore_spend([rec((IDS["claude"], 1_000_000, 0), (IDS["openai"], 0, 1_000_000))], b, IDS)
+    assert b["claude"].spent == pytest.approx(0.10) and b["openai"].spent == pytest.approx(0.50)
 
 
 def manifest(tmp_path):
@@ -199,3 +210,82 @@ def test_batch_files_use_windows_line_endings():
         raw = (ROOT / name).read_bytes()
         assert b"\r\n" in raw and raw.count(b"\n") == raw.count(b"\r\n"), name
         assert b"--models openai" in raw or name == "setup_windows.bat"
+
+
+# ------------------------------------------------------------------ cross-vendor pairs
+class Spy:
+    """Wraps a scripted agent and records which roles it was asked to play."""
+    def __init__(self, inner, name):
+        self.inner, self.name, self.roles = inner, name, []
+        self.model_id, self.budget = name, inner.budget
+
+    async def act(self, system, user, tools, terminal, execute, validate, ctx):
+        self.roles.append(ctx["role"])
+        return await self.inner.act(system, user, tools, terminal, execute, validate, ctx)
+
+
+def play(agent, arm="C3", idx=0):
+    import asyncio
+    from engine import load_prompts, play_game
+    game = {"game_id": f"T-{arm}-{idx}", "exp": 1, "arm": arm, "model_label": "t", "idx": idx,
+            "trustee_type": "none" if arm == "A0" else ("fair" if idx % 2 == 0 else "self_interested"), "seed": 5}
+    return asyncio.run(play_game(game, agent, load_prompts(ROOT / "prompts")))
+
+
+def test_each_role_is_played_by_its_own_model():
+    from agents import MockAgent
+    for arm in ("A0", "C1", "C3", "C4", "D3"):
+        buyer, supplier = Spy(MockAgent(1), "buyer-model"), Spy(MockAgent(2), "supplier-model")
+        rec_ = play({"sender": buyer, "trustee": supplier}, arm)
+        assert rec_["outcome"] is not None
+        assert set(buyer.roles) == {"sender"} and set(supplier.roles) <= {"trustee"} and supplier.roles
+
+
+def test_self_play_is_unchanged_by_the_cross_vendor_option():
+    """One shared agent passed as before and the same agent passed for both roles give the same game.
+    (Signatures are excluded: every game draws a fresh random signing key.)"""
+    from agents import MockAgent
+    def core(r):
+        pre = {k: v for k, v in r["pre_play"].items() if k not in ("signature", "payload")}
+        return r["outcome"], pre, r["comprehension"], r["return"]
+    for arm in ("A0", "C1", "C2", "C3", "C4", "D2", "D3", "D4"):
+        for idx in (0, 1):
+            plain = play(MockAgent(7), arm, idx)
+            shared = MockAgent(7)
+            as_pair = play({"sender": shared, "trustee": shared}, arm, idx)
+            assert core(plain) == core(as_pair), (arm, idx)
+
+
+def test_pair_option_runs_audits_and_analyses(tmp_path):
+    dirs = []
+    for pair in ("claude>openai", "openai>claude"):
+        out = tmp_path / pair.replace(">", "_to_")
+        r = sh("run.py", "--mock", "--pair", pair, "--out", str(out), "--games-per-cell", "4")
+        assert r.returncode == 0, r.stderr
+        recs = read(out)
+        assert {g["game"]["model_label"] for g in recs} == {pair} and len(recs) == 4 * 9
+        assert json.loads((out / "manifest.json").read_text())["pair"] == pair
+        dirs.append(str(out))
+    assert sh("audit.py", *dirs, "--cells", str(tmp_path / "none")).returncode == 0
+    if HAVE_BASELINE:
+        r = sh("analyze.py", *dirs, "--out", str(tmp_path / "combined"))
+        assert r.returncode == 0, r.stderr
+        cells = pd.read_csv(tmp_path / "combined" / "cells.csv")
+        assert set(cells["model"]) == {"claude>openai", "openai>claude"}
+
+
+def test_pair_option_rejects_bad_input_and_a_changed_pairing(tmp_path):
+    assert sh("run.py", "--mock", "--pair", "claude>claude", "--out", str(tmp_path / "a")).returncode != 0
+    assert sh("run.py", "--mock", "--pair", "claude>openai", "--models", "claude", "--out", str(tmp_path / "b")).returncode != 0
+    out = tmp_path / "c"
+    assert sh("run.py", "--mock", "--pair", "claude>openai", "--out", str(out), "--games-per-cell", "2").returncode == 0
+    r = sh("run.py", "--mock", "--pair", "openai>claude", "--out", str(out), "--games-per-cell", "2")
+    assert r.returncode != 0 and "pairing differs" in (r.stderr + r.stdout)
+
+
+def test_cross_script_quotes_the_pairing_and_uses_windows_line_endings():
+    raw = (ROOT / "run_cross.bat").read_bytes()
+    assert raw.count(b"\n") == raw.count(b"\r\n")
+    text = raw.decode()
+    assert '--pair "claude>openai"' in text and '--pair "openai>claude"' in text
+    assert "--pair claude>" not in text and "--pair openai>" not in text     # an unquoted > would redirect output
