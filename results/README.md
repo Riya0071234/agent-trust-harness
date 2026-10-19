@@ -1,16 +1,17 @@
 # Results
 
-Raw transcripts and analysis for every run reported in the top-level README. Each run folder holds `games.jsonl` (one game per line: every model call with its system prompt, messages and tool calls, the signed artifact, the outcome) and `manifest.json` (config, prompt hashes, code hashes, git commit, models, spend, start and finish times). Analysis folders hold `cells.csv`, `hypotheses.csv` and `results.md`.
+Raw runs sit at the top level of `results/`; everything derived from them sits under `results/analysis/`.
+
+Each run folder holds `games.jsonl` (one game per line: every model call with its system prompt, messages and tool calls, the signed artifact, the outcome) and `manifest.json` (config, prompt hashes, code hashes, git commits, models, spend, start and finish times). Run folder names are the ones written into `PREREG.md`, so they are kept as they are.
 
 | Folder | What it is | Games |
 |---|---|---|
-| `claude`, `openai` | Experiments 1-2, self-play, one model per folder (Haiku 5.5; gpt-6-luna) | 1,440 each |
-| `combined`, `by_model` | Analysis of the two self-play runs, pooled and per model | |
+| `claude`, `openai` | Experiments 1-2, self-play (Claude Haiku 5.5; gpt-6-luna) | 1,440 each |
 | `cross_claude_buys`, `cross_openai_buys` | Experiment 3, cross-vendor, both directions | 1,440 each |
-| `cross_combined` | Analysis of Experiment 3, pooled | |
 | `stronger_claude_sonnet`, `stronger_openai_sol` | Experiment 4, stronger-model check, five arms | 90 and 200 |
-| `stronger_*_analysis` | Analysis of Experiment 4 | |
+| `analysis/selfplay`, `analysis/selfplay_haiku`, `analysis/selfplay_luna` | `analyze.py` output for Experiments 1-2, pooled and per model | |
+| `analysis/cross` | Experiment 3, pooled over both directions | |
+| `analysis/stronger_sonnet`, `analysis/stronger_sol` | Experiment 4 | |
+| `analysis/figures` | `figures.py` output: every chart in the write-up and the descriptive tables | |
 
-Check any run yourself: `python audit.py results/cross_claude_buys results/cross_openai_buys --cells results/cross_combined` recomputes every number from the raw transcripts and checks each arm's invariants (it prints `AUDIT PASS` or lists the mismatches).
-
-Smoke-test and mock runs are not included; they were discarded by design. The model alias was recorded but not the version string the API returned; see "Model versions" in the top-level README.
+`bash scripts/reproduce.sh` rebuilds all of `analysis/` and prints `AUDIT PASS` for each audit. Smoke-test and mock runs are not included; they were discarded by design. The model alias was recorded but not the version string the API returned; see "Model versions" in the top-level README.

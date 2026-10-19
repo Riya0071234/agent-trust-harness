@@ -1,8 +1,9 @@
-anthropic>=1.0
-cryptography>=42
-numpy
-pandas
-pyyaml
-pytest
-matplotlib
-openai>=1.0
+# Versions used for every run reported in the write-up (2026-10-19).
+anthropic==1.13.0
+cryptography==50.0.1
+numpy==2.5.3
+pandas==3.0.5
+pyyaml==6.0.3
+pytest==9.1.1
+matplotlib==3.11.2
+openai==3.31.0

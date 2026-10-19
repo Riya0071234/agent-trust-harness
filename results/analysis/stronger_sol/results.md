@@ -1,4 +1,4 @@
-# Results: stronger_openai_sol_analysis
+# Results: stronger_sol
 
 Sources: results/stronger_openai_sol.
 Run started 2026-10-19T11:41:26Z. Models: {"openai_sol": "gpt-6.1-sol"}. Games per cell: 40. Mock run: False. Spend: openai_sol $1.21.

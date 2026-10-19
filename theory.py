@@ -10,7 +10,7 @@ Assumptions (all stated in the output):
     "an outcome that benefits both sides"). Any share above 1/3 leaves the buyer better off than keeping the point.
   * The buyer knows the prior: half of suppliers are fair (PRIOR_FAIR = 0.5), as the prompts state.
   * Cheap talk and unsigned claims are free for a self-interested supplier to copy, so they carry no information.
-Usage: python theory.py [--cells results/combined/cells.csv]
+Usage: python theory.py [--cells results/analysis/selfplay/cells.csv]
 """
 from __future__ import annotations
 

@@ -6,8 +6,8 @@ the payoffs, efficiency and the comprehension answers, and compares them with wh
 stored. It also checks that every game follows its arm's design (trustee type alternation,
 artifact kind, signature valid or invalid as the arm requires, who paid the return). It then recomputes the per-cell mean efficiency and compares it with cells.csv.
 
-Usage: python audit.py results/claude results/openai [--cells results/combined]
-       (exit code 1 if anything differs; cells.csv is read from --cells, default: the run dir or results/combined)
+Usage: python audit.py results/claude results/openai [--cells results/analysis/selfplay]
+       (exit code 1 if anything differs; cells.csv is read from --cells, default: the run dir or results/analysis/selfplay)
 """
 from __future__ import annotations
 
@@ -180,7 +180,7 @@ def audit_game(r):
 def main(run_dirs: list[str], cells_dir: str | None = None) -> int:
     runs = [Path(d) for d in run_dirs]
     recs = [json.loads(l) for d in runs for l in (d / "games.jsonl").read_text().splitlines() if l.strip()]
-    run = Path(cells_dir) if cells_dir else (runs[0] if len(runs) == 1 else Path("results/combined"))
+    run = Path(cells_dir) if cells_dir else (runs[0] if len(runs) == 1 else Path("results/analysis/selfplay"))
     bad, skipped, cell = 0, 0, defaultdict(list)
     for r in recs:
         res, errs = audit_game(r)

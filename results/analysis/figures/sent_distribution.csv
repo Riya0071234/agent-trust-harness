@@ -1,0 +1,47 @@
+setting,arm,games,sent_0,sent_1_to_9,sent_10
+"Haiku, self-play",A0,160,160,0,0
+"Haiku, self-play",C1,160,47,93,20
+"Haiku, self-play",C2,160,72,3,85
+"Haiku, self-play",C3,160,29,0,131
+"Haiku, self-play",C4,160,160,0,0
+"Haiku, self-play",D1,160,44,108,8
+"Haiku, self-play",D2,160,80,62,18
+"Haiku, self-play",D3,160,80,0,80
+"Haiku, self-play",D4,160,158,2,0
+"Luna, self-play",A0,160,160,0,0
+"Luna, self-play",C1,160,155,5,0
+"Luna, self-play",C2,160,160,0,0
+"Luna, self-play",C3,160,75,0,85
+"Luna, self-play",C4,160,160,0,0
+"Luna, self-play",D1,160,156,3,1
+"Luna, self-play",D2,160,160,0,0
+"Luna, self-play",D3,160,101,0,59
+"Luna, self-play",D4,160,160,0,0
+Haiku buys from Luna,A0,160,160,0,0
+Haiku buys from Luna,C1,160,82,46,32
+Haiku buys from Luna,C2,160,21,0,139
+Haiku buys from Luna,C3,160,71,0,89
+Haiku buys from Luna,C4,160,160,0,0
+Haiku buys from Luna,D1,160,95,47,18
+Haiku buys from Luna,D2,160,65,90,5
+Haiku buys from Luna,D3,160,82,0,78
+Haiku buys from Luna,D4,160,159,1,0
+Luna buys from Haiku,A0,160,160,0,0
+Luna buys from Haiku,C1,160,136,23,1
+Luna buys from Haiku,C2,160,160,0,0
+Luna buys from Haiku,C3,160,0,0,160
+Luna buys from Haiku,C4,160,160,0,0
+Luna buys from Haiku,D1,160,140,19,1
+Luna buys from Haiku,D2,160,160,0,0
+Luna buys from Haiku,D3,160,80,0,80
+Luna buys from Haiku,D4,160,160,0,0
+"Claude Sonnet 5.5, self-play",A0,18,0,18,0
+"Claude Sonnet 5.5, self-play",C1,18,15,3,0
+"Claude Sonnet 5.5, self-play",C3,18,0,0,18
+"Claude Sonnet 5.5, self-play",D1,18,14,4,0
+"Claude Sonnet 5.5, self-play",D3,18,9,0,9
+"gpt-6.1-sol, self-play",A0,40,40,0,0
+"gpt-6.1-sol, self-play",C1,40,39,1,0
+"gpt-6.1-sol, self-play",C3,40,0,0,40
+"gpt-6.1-sol, self-play",D1,40,39,1,0
+"gpt-6.1-sol, self-play",D3,40,20,0,20

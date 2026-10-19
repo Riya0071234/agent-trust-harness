@@ -1,4 +1,4 @@
-# Results: stronger_claude_sonnet_analysis
+# Results: stronger_sonnet
 
 Sources: results/stronger_claude_sonnet.
 Run started 2026-10-19T09:13:44Z. Models: {"claude_sonnet": "claude-sonnet-5-5"}. Games per cell: 18. Mock run: False. Spend: claude_sonnet $1.64.

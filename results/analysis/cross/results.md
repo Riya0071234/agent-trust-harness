@@ -1,4 +1,4 @@
-# Results: cross_combined
+# Results: cross
 
 Sources: results/cross_claude_buys, results/cross_openai_buys.
 Run started 2026-10-19T09:34:16Z. Models: {"claude": "claude-haiku-5-5", "openai": "gpt-6-luna"}. Games per cell: 160. Mock run: False. Spend: claude $0.40, openai $0.23.

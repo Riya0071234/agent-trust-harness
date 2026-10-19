@@ -1,4 +1,4 @@
-# Results: openai
+# Results: selfplay_luna
 
 Sources: results/openai.
 Run started 2026-10-19T08:10:51Z. Models: {"openai": "gpt-6-luna"}. Games per cell: 160. Mock run: False. Spend: openai $0.37.

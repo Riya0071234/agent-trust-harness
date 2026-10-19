@@ -1,0 +1,47 @@
+setting,arm,mean_sent_fair,mean_sent_self_interested
+"Haiku, self-play",A0,,
+"Haiku, self-play",C1,4.31,4.0
+"Haiku, self-play",C2,10.0,0.78
+"Haiku, self-play",C3,8.75,7.62
+"Haiku, self-play",C4,0.0,0.0
+"Haiku, self-play",D1,3.84,3.81
+"Haiku, self-play",D2,6.12,0.0
+"Haiku, self-play",D3,10.0,0.0
+"Haiku, self-play",D4,0.12,0.0
+"Luna, self-play",A0,,
+"Luna, self-play",C1,0.06,0.0
+"Luna, self-play",C2,0.0,0.0
+"Luna, self-play",C3,10.0,0.62
+"Luna, self-play",C4,0.0,0.0
+"Luna, self-play",D1,0.17,0.0
+"Luna, self-play",D2,0.0,0.0
+"Luna, self-play",D3,7.38,0.0
+"Luna, self-play",D4,0.0,0.0
+Haiku buys from Luna,A0,,
+Haiku buys from Luna,C1,4.78,1.25
+Haiku buys from Luna,C2,10.0,7.38
+Haiku buys from Luna,C3,10.0,1.12
+Haiku buys from Luna,C4,0.0,0.0
+Haiku buys from Luna,D1,3.7,0.57
+Haiku buys from Luna,D2,5.31,0.94
+Haiku buys from Luna,D3,9.75,0.0
+Haiku buys from Luna,D4,0.04,0.0
+Luna buys from Haiku,A0,,
+Luna buys from Haiku,C1,0.68,0.07
+Luna buys from Haiku,C2,0.0,0.0
+Luna buys from Haiku,C3,10.0,10.0
+Luna buys from Haiku,C4,0.0,0.0
+Luna buys from Haiku,D1,0.49,0.45
+Luna buys from Haiku,D2,0.0,0.0
+Luna buys from Haiku,D3,10.0,0.0
+Luna buys from Haiku,D4,0.0,0.0
+"Claude Sonnet 5.5, self-play",A0,,
+"Claude Sonnet 5.5, self-play",C1,0.33,1.0
+"Claude Sonnet 5.5, self-play",C3,10.0,10.0
+"Claude Sonnet 5.5, self-play",D1,0.56,1.22
+"Claude Sonnet 5.5, self-play",D3,10.0,0.0
+"gpt-6.1-sol, self-play",A0,,
+"gpt-6.1-sol, self-play",C1,0.45,0.0
+"gpt-6.1-sol, self-play",C3,10.0,10.0
+"gpt-6.1-sol, self-play",D1,0.25,0.0
+"gpt-6.1-sol, self-play",D3,10.0,0.0

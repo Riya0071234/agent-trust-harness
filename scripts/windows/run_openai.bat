@@ -1,5 +1,5 @@
 @echo off
-cd /d "%~dp0"
+cd /d "%~dp0..\.."
 call .venv\Scripts\activate.bat
 if defined OPENAI_API_KEY goto go
 set /p OPENAI_API_KEY=Paste your OpenAI key here and press Enter: 

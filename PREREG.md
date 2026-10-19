@@ -172,3 +172,12 @@ Review of the design against the code, before analysing any main-run data (no pr
 - *Statement for the write-up.* The study reports results for aliases as of 2026-10-19, with the limitation above.
 - *Licence.* MIT, added for publication.
 
+
+### Deviation log, 2026-10-19, review after all data (reporting, layout and checks only)
+
+No game, prompt, setting, hypothesis or analysis rule changed, and no collected data were altered. `analyze.py` outputs were regenerated into new folders and are byte-identical to the earlier ones.
+- *Timestamps.* The commit times in this file come from the author's local git history and were first published to GitHub on 2026-10-19, after all data existed. They cannot be verified independently of the author. Future studies will be registered on OSF before data collection.
+- *Promised reports added.* The Power section said the measured standard deviation would replace the assumed 20 points; `figures.py` now reports it (pooled within-arm SD 12 to 22 points by setting, single arms 0 to about 33, because games are close to all-or-nothing). The comprehension-only analysis (item 5 of Analysis) is reported: no label changes.
+- *Manipulation check, added after the data and labelled as such.* Suppliers told to act for a self-interested principal returned almost as much as fair ones when they chose the return (Haiku suppliers 44% versus 51% of the tripled amount; Luna suppliers in cross-vendor play 77% versus 80%), and every unsigned commitment followed by a prepayment was kept. The theory benchmark's assumption that self-interested suppliers return nothing is therefore not how these suppliers behaved. Reported as a limitation; no hypothesis is re-labelled.
+- *Noted after the data.* A0 has no principal type, so its buyer is not told that half of suppliers are self-interested; A0 against C1 changes more than the message.
+- *Layout.* Analysis outputs moved to `results/analysis/`, Windows scripts and `probe_sol.py` to `scripts/`, requirements pinned to the versions used, and `scripts/reproduce.sh` plus a GitHub Actions check added.
