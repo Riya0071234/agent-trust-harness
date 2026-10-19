@@ -9,4 +9,4 @@ intelligence language model's trust in humans using machine incentives" (file `j
 The file is not redistributed here because the package does not state a licence. Download it from the authors' replication package
 and place it at the path above.
 
-Only the 150 studies with `rate_of_return == 3` (the amount sent was tripled) are used, to match this game.
+Only the studies with `rate_of_return == 3` (the amount sent was tripled) are used, to match this game: 150 in the table, of which one has no mean share and one reports a mean share of 160% (impossible), so `analyze.py` uses 148. See the deviations log in `PREREG.md`.

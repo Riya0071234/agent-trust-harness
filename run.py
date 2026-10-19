@@ -60,6 +60,49 @@ def make_agent(m: dict, cfg: dict, budget: Budget):
     sys.exit(f"unknown provider {m['provider']!r}")
 
 
+GAME_LOGIC_FILES = ("engine.py", "escrow.py", "agents.py")
+
+
+def code_hashes() -> dict[str, str]:
+    root = Path(__file__).parent
+    return {f: hashlib.sha256((root / f).read_bytes()).hexdigest()[:16] for f in GAME_LOGIC_FILES}
+
+
+def restore_spend(records: list[dict], budgets: dict) -> None:
+    """Add the token cost of games already on disk to each model's budget, so the cap and the
+    manifest's spend are cumulative across resumes rather than per session."""
+    for rec in records:
+        b = budgets.get(rec["game"]["model_label"])
+        if b is not None:
+            b.add(rec["usage"]["input_tokens"], rec["usage"]["output_tokens"])
+
+
+def resume_problems(old: dict, new: dict, cfg: dict, labels: list[str]) -> list[str]:
+    """Reasons a run directory must not be resumed: games played under different prompts, game
+    rules or model settings would silently be mixed with the new ones."""
+    problems = []
+    if old.get("prompt_hashes") != new["prompt_hashes"]:
+        problems.append("the prompts differ from those used for the games already on disk")
+    oc = old.get("config", {})
+    for k in ("seed", "temperature", "max_tokens"):
+        if oc.get(k) != cfg[k]:
+            problems.append(f"config {k} differs ({oc.get(k)!r} on disk, {cfg[k]!r} now)")
+    old_models = {m["label"]: m for m in oc.get("models", [])}
+    new_models = {m["label"]: m for m in cfg["models"]}
+    for label in labels:
+        o, n = old_models.get(label), new_models[label]
+        if o is not None:
+            for k in ("id", "reasoning_effort"):
+                if o.get(k) != n.get(k):
+                    problems.append(f"model {label}: {k} differs ({o.get(k)!r} on disk, {n.get(k)!r} now)")
+    oh = old.get("code_hashes")
+    if oh:   # older manifests predate code hashes; the rules files must be identical, the adapter may change
+        for f in ("engine.py", "escrow.py"):
+            if oh.get(f) != new["code_hashes"][f]:
+                problems.append(f"{f} differs from the version that played the games already on disk")
+    return problems
+
+
 def projected_cost(cost_per_game: float, n_per_cell: int, n_arms: int) -> float:
     """Cost of a full grid of n_per_cell games in each of n_arms arms for one model."""
     return cost_per_game * n_arms * n_per_cell
@@ -89,9 +132,10 @@ async def main_async(args):
 
     games = build_games(cfg, exps, n, list(agents))
     games_path = out / "games.jsonl"
-    done = set()
+    done, existing = set(), []
     if games_path.exists():
-        done = {json.loads(line)["game"]["game_id"] for line in games_path.read_text().splitlines() if line.strip()}
+        existing = [json.loads(line) for line in games_path.read_text().splitlines() if line.strip()]
+        done = {r["game"]["game_id"] for r in existing}
     todo = [g for g in games if g["game_id"] not in done]
 
     manifest_path = out / "manifest.json"
@@ -100,17 +144,26 @@ async def main_async(args):
         "mock": args.mock, "smoke": args.smoke, "games_per_cell": n, "experiments": exps,
         "model_ids": model_ids, "providers": {m["label"]: m["provider"] for m in models},
         "config": cfg, "prompt_hashes": prompt_hashes(prompts), "git_commit": git_commit(),
+        "code_hashes": code_hashes(),
         "python": platform.python_version(), "planned_games": len(games),
     }
+    manifest["git_commits"] = [manifest["git_commit"]] if manifest["git_commit"] else []
     if manifest_path.exists():   # keep the original start time; log resumes
         old = json.loads(manifest_path.read_text())
+        problems = resume_problems(old, manifest, cfg, list(agents))
+        if problems:
+            sys.exit("Refusing to resume " + str(out) + ":\n  - " + "\n  - ".join(problems)
+                     + "\nStart a new --out directory, or restore the earlier files.")
         manifest["run_started_utc"] = old["run_started_utc"]
         manifest["resumed_utc"] = old.get("resumed_utc", []) + [time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())]
+        prev = old.get("git_commits") or ([old["git_commit"]] if old.get("git_commit") else [])
+        manifest["git_commits"] = prev + [c for c in manifest["git_commits"] if c not in prev]
+    restore_spend(existing, budgets)
     manifest_path.write_text(json.dumps(manifest, indent=2))
 
     print(f"{len(games)} planned, {len(done)} already done, {len(todo)} to run.", flush=True)
     for label, b in budgets.items():
-        print(f"  {label}: {model_ids[label]}, cap ${b.cap:.2f}", flush=True)
+        print(f"  {label}: {model_ids[label]}, cap ${b.cap:.2f}, already spent ${b.spent:.4f}", flush=True)
     sem = asyncio.Semaphore(args.concurrency or cfg["concurrency"])
     lock = asyncio.Lock()
     stats = {"done": 0, "aborted": 0}
@@ -158,10 +211,11 @@ async def main_async(args):
         print("\nSmoke test: size to run (largest size whose projected cost is within "
               f"{int(SAFETY * 100)}% of the cap)", flush=True)
         for label, b in budgets.items():
-            if per_model_done[label] == 0:
+            n_label = per_model_done[label] + sum(1 for r in existing if r["game"]["model_label"] == label)
+            if n_label == 0:
                 print(f"  {label}: no games finished", flush=True)
                 continue
-            cost_per_game = b.spent / per_model_done[label]
+            cost_per_game = b.spent / n_label       # spend and game count both cumulative
             n_arms = sum(len(v) for v in cfg["experiments"].values())
             choice = next((size for size in SIZES
                            if projected_cost(cost_per_game, size, n_arms) <= SAFETY * b.cap), None)
