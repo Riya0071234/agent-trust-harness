@@ -164,3 +164,11 @@ Review of the design against the code, before analysing any main-run data (no pr
 - *Change.* `gpt-6.1-sol` now runs through a Responses API adapter (`OpenAIResponsesAgent`, `api: responses` in config) with `reasoning_effort: low` (the cheapest accepted setting) and a per-model `max_tokens: 4000` because reasoning tokens count against the limit. Temperature is not sent. Game rules, prompts and arms are unchanged.
 - *Effect on interpretation.* This model reasons before acting; `gpt-6-luna` (Exp 1-3) did not, and `claude-sonnet-5-5` ran with its default (no extended thinking). Exp 4's prediction (X-S1: the sign of H1 and G1 per model) is unchanged, but any difference between the Sonnet and gpt-6.1-sol results cannot be attributed to the vendor alone. Stated in the write-up.
 - *Spend.* Reasoning tokens are billed as output and counted in the $3.00 cap. If the 10-game smoke shows the planned 200 games would exceed the cap, the per-arm size is reduced before the full run and logged here.
+
+### Deviation log, 2026-10-19, after all Experiment 1-4 data (documentation and recording only)
+
+- *Model versions.* All 6,050 games used model aliases (`claude-haiku-5-5`, `claude-sonnet-5-5`, `gpt-6-luna`, `gpt-6.1-sol`) and the adapters stored only the requested alias, not the version string each API returns. This was an omission against the plan to pin versions, found while comparing the study with the posting it was built for. It cannot be repaired for the existing games.
+- *Change.* The adapters now store `model_returned` for every call and the manifest lists `model_versions_returned`. No game rule, prompt, setting or analysis changed, and no collected data was altered. Commit-time hashes of `engine.py` and `escrow.py` are unchanged; `agents.py` differs from the one recorded in the Experiment 1-4 manifests only by this recording.
+- *Statement for the write-up.* The study reports results for aliases as of 2026-10-19, with the limitation above.
+- *Licence.* MIT, added for publication.
+

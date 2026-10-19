@@ -62,10 +62,14 @@ class ToolLoopAgent:
             force = terminal if (turn == MAX_TURNS - 1 or malformed > 0) else None
             r = await self._complete(system, messages, tools, force)
             self.budget.add(r["input_tokens"], r["output_tokens"])
+            returned = r.get("model_returned")      # exact version string the vendor's API reports for this call
+            if returned:
+                self.__dict__.setdefault("seen_models", set()).add(returned)
             usage["input_tokens"] += r["input_tokens"]
             usage["output_tokens"] += r["output_tokens"]
             content = r["content"]
-            calls.append({"model": self.model_id, "messages": json.loads(json.dumps(messages)), "system": system,
+            calls.append({"model": self.model_id, "model_returned": returned,
+                          "messages": json.loads(json.dumps(messages)), "system": system,
                           "response": content, "stop_reason": r["stop_reason"],
                           "usage": {"input_tokens": r["input_tokens"], "output_tokens": r["output_tokens"]}})
             uses = [b for b in content if b.get("type") == "tool_use"]
@@ -129,7 +133,7 @@ class AnthropicAgent(ToolLoopAgent):
             else:
                 raise
         return {"content": [b.model_dump(exclude_none=True) for b in resp.content],
-                "stop_reason": resp.stop_reason,
+                "stop_reason": resp.stop_reason, "model_returned": getattr(resp, "model", None),
                 "input_tokens": resp.usage.input_tokens, "output_tokens": resp.usage.output_tokens}
 
 
@@ -209,7 +213,7 @@ class OpenAIAgent(ToolLoopAgent):
             except json.JSONDecodeError:
                 args = {}
             blocks.append({"type": "tool_use", "id": tc.id, "name": tc.function.name, "input": args})
-        return {"content": blocks, "stop_reason": choice.finish_reason,
+        return {"content": blocks, "stop_reason": choice.finish_reason, "model_returned": getattr(resp, "model", None),
                 "input_tokens": resp.usage.prompt_tokens, "output_tokens": resp.usage.completion_tokens}
 
 
@@ -291,6 +295,7 @@ class OpenAIResponsesAgent(OpenAIAgent):
                     args = {}
                 blocks.append({"type": "tool_use", "id": item.call_id, "name": item.name, "input": args})
         return {"content": blocks, "stop_reason": getattr(resp, "status", None) or "completed",
+                "model_returned": getattr(resp, "model", None),
                 "input_tokens": resp.usage.input_tokens, "output_tokens": resp.usage.output_tokens}
 
 

@@ -445,3 +445,19 @@ def test_sol_is_configured_for_the_responses_api_and_selected_by_make_agent():
     luna = next(m for m in cfg["models"] if m["label"] == "openai")
     a = run.make_agent(luna, cfg, Budget(1, .1, .5))
     assert type(a) is OpenAIAgent and a.max_tokens == cfg["max_tokens"]
+
+
+def test_returned_model_version_is_stored_per_call_and_collected():
+    import asyncio
+    from engine import TOOLS
+    r = _r([("submit_transfer", {"amount": 3, "rationale": "x"})])
+    r.model = "gpt-6.1-sol-2026-09-30"          # what the vendor's API reports back
+    a = _resp_agent(_RespClient([r]))
+    out = asyncio.run(a.act("S", "U", [TOOLS["submit_transfer"]], "submit_transfer", None, None, {}))
+    assert out["calls"][0]["model_returned"] == "gpt-6.1-sol-2026-09-30"
+    assert out["calls"][0]["model"] == "gpt-6.1-sol"            # the requested alias is kept too
+    assert a.seen_models == {"gpt-6.1-sol-2026-09-30"}
+    # an API that returns no model string leaves the field empty instead of failing
+    a2 = _resp_agent(_RespClient([_r([("submit_transfer", {"amount": 3, "rationale": "x"})])]))
+    out2 = asyncio.run(a2.act("S", "U", [TOOLS["submit_transfer"]], "submit_transfer", None, None, {}))
+    assert out2["calls"][0]["model_returned"] is None
