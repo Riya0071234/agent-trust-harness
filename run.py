@@ -45,11 +45,16 @@ def build_games(cfg: dict, exps: list[int], n_per_cell: int, model_labels: list[
     return games
 
 
-def git_commit() -> str | None:
+def git_commit(root: Path | None = None) -> str | None:
+    """HEAD of the repository holding this code. A copy without .git (a zip) ships a GIT_COMMIT file
+    naming the commit it was built from."""
+    root = root or Path(__file__).parent
     try:
-        return subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+        return subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True,
+                              cwd=root).stdout.strip()
     except Exception:
-        return None
+        f = root / "GIT_COMMIT"
+        return f.read_text().strip() if f.exists() else None
 
 
 def make_agent(m: dict, cfg: dict, budget: Budget):
