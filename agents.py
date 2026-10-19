@@ -109,13 +109,14 @@ class AnthropicAgent(ToolLoopAgent):
         kwargs = dict(model=self.model_id, max_tokens=self.max_tokens, system=system,
                       messages=messages, tools=tools, tool_choice=tool_choice)
         if self.send_temperature:
-            kwargs["temperature"] = self.temperature
+            # newer SDKs no longer list temperature as a named argument; extra_body reaches the API either way
+            kwargs["extra_body"] = {"temperature": self.temperature}
         try:
             resp = await self.client.messages.create(**kwargs)
         except self._anthropic.BadRequestError as e:
             if self.send_temperature and "temperature" in str(e).lower():
                 self.send_temperature = False   # this model rejects the parameter; recorded in the manifest
-                kwargs.pop("temperature")
+                kwargs.pop("extra_body")
                 resp = await self.client.messages.create(**kwargs)
             else:
                 raise
